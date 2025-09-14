@@ -1,0 +1,15 @@
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="44" height="44" rx="22" transform="matrix(-1 0 0 1 44 0)" fill="url(#paint0_linear_53_3508)"/>
+  
+  <!-- เพิ่ม scale 1.2 และเลื่อนกลับมาที่ center -->
+  <g transform="translate(22 22) scale(1.2) translate(-22 -22)">
+    <path d="M12.1766 13.3433C12.7619 12.756 13.4573 12.29 14.2231 11.972C14.9889 11.654 15.8099 11.4904 16.6391 11.4904C17.4682 11.4904 18.2892 11.654 19.055 11.972C19.8208 12.29 20.5163 12.756 21.1016 13.3433L21.9999 14.2533L22.8982 13.3433C23.4835 12.756 24.179 12.29 24.9448 11.972C25.7106 11.654 26.5316 11.4904 27.3607 11.4904C28.1899 11.4904 29.0109 11.654 29.7767 11.972C30.5425 12.29 31.2379 12.756 31.8232 13.3433C34.2966 15.8167 34.4482 19.9933 31.3332 23.1667L21.9999 32.5L12.6666 23.1667C9.55157 19.9933 9.70323 15.8167 12.1766 13.3433Z" stroke="white" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <defs>
+    <linearGradient id="paint0_linear_53_3508" x1="-2.3221e-07" y1="1.83333" x2="44" y2="43.0833" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F24BA7"/>
+      <stop offset="1" stop-color="#EF4444"/>
+    </linearGradient>
+  </defs>
+</svg>
