@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { MapPin, Star } from 'lucide-react'
 import { Kanit } from 'next/font/google'
 import ActivityBox from './ActivityBox'
-import PrimaryButton from './ฺPrimaryButton'
+import PrimaryButton from './PrimaryButton'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
