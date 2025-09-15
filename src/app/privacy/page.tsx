@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       <section className=" px-6 py-8 text-center shadow-[0_6px_24px_rgba(0,0,0,.06)] ">
         <div className="mb-3 flex items-center justify-center gap-3">
           <IconBubble>
-            <Image src="/img/Frame 3.svg" alt="" width={48} height={24} />
+            <Image src="/img/lock.svg" alt="" width={48} height={24} />
           </IconBubble>
           
         </div>
