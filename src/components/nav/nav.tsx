@@ -6,7 +6,7 @@ import Alreadylogin from './alreadylogin'
 import { useState } from 'react'
 
 export default function Nav() {
-    const [loginState, setLoginState] = useState(0)
+    const [loginState, setLoginState] = useState(1)
     return (
         <nav className="sticky top-0 z-50 flex h-[64px] w-full items-center justify-between bg-white pr-[71px] pl-[71px] shadow-xl">
             <div className="flex gap-[422px]">

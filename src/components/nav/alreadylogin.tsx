@@ -3,8 +3,8 @@ import Image from 'next/image'
 import { useState } from 'react'
 
 export default function Alreadylogin() {
-    const [messageCnt, setMessageCnt] = useState(4)
-    const [notifyCnt, setNotifyCnt] = useState(10)
+    const [messageCnt, setMessageCnt] = useState(7)
+    const [notifyCnt, setNotifyCnt] = useState(5)
     const [name, setName] = useState('สมชาย โดว')
     const [pathimg, setPathImg] = useState('/img/p2.jpg')
 
