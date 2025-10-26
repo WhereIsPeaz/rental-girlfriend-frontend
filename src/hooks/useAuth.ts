@@ -32,6 +32,10 @@ export const useAuth = () => {
     ): Promise<{ success: boolean; user?: User }> => {
         try {
             setLoading(true)
+
+            // Simulate API delay for authentication
+            await new Promise((resolve) => setTimeout(resolve, 1500))
+
             const loggedInUser = loginUser(email, password)
             setUser(loggedInUser)
             toast.success(`ยินดีต้อนรับ ${loggedInUser.firstName}!`)
@@ -53,6 +57,10 @@ export const useAuth = () => {
     ): Promise<boolean> => {
         try {
             setLoading(true)
+
+            // Simulate API delay for registration
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+
             const newUser = registerUser(userData)
             setUser(newUser)
             toast.success(
