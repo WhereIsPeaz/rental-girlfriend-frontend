@@ -1,9 +1,5 @@
-import Image from 'next/image'
-import { MapPin, Star } from 'lucide-react'
 import { Kanit } from 'next/font/google'
-import ActivityBox from './ActivityBox'
 import PrimaryButton from './PrimaryButton'
-import { isBase64Image } from '@/lib/imageUtils'
 import CardHeader from './card/CardHeader'
 import CardFooter from './card/CardFooter'
 import CardContent from './card/CardContent'
@@ -70,7 +66,9 @@ export default function Card({
                             ฿ {priceD} / วัน
                         </div>
                     </div>
-                    <PrimaryButton title={buttonTitle} onClick={() => {}} />
+                    <PrimaryButton title={buttonTitle} onClick={() => {
+                        // TODO: implement search logic
+                    }} />
                 </div>
             </div>
             <hr className="border-0 border-t border-t-[#E1E7F4]/60" />
