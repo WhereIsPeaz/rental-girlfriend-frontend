@@ -1,19 +1,35 @@
 import { Camera } from 'lucide-react'
+import Image from 'next/image'
+
+interface User {
+    img: string
+    username: string
+    joined: string
+}
+
+interface ProfileBannerProps {
+    user: User
+    setChangeProfile: (value: boolean) => void
+    setEditProfile: (value: boolean) => void
+    editProfile: boolean
+}
 
 export default function ProfileBanner({
     user,
     setChangeProfile,
     setEditProfile,
     editProfile,
-}: any) {
+}: ProfileBannerProps) {
     return (
         <section className="flex h-[160px] w-[762px] justify-between gap-3 rounded-xl bg-[linear-gradient(133.15deg,#F24BA7_2.02%,#EF4444_98.99%)] p-7">
             <div className="flex h-20 w-65.25 items-end gap-3 pt-26">
                 <div className="relative h-20 w-20">
-                    <img
+                    <Image
                         src={user.img}
                         alt="profile"
-                        className="box-border h-20 w-20 rounded-full border-[3px] border-white bg-cover bg-center"
+                        width={80}
+                        height={80}
+                        className="box-border h-20 w-20 rounded-full border-[3px] border-white object-cover"
                     />
                     <button
                         onClick={() => setChangeProfile(true)}

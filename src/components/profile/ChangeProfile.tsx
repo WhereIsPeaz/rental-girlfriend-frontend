@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Camera, X, Upload, Check } from 'lucide-react'
+import Image from 'next/image'
+import { processImageFile, isBase64Image } from '@/lib/imageUtils'
 
 interface User {
     img: string
@@ -22,10 +24,36 @@ export default function ChangeProfile({
     setTempImg: (url: string | null) => void
     saveProfile: () => void
 }) {
-    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0]
-            setTempImg(URL.createObjectURL(file))
+    const [isUploading, setIsUploading] = useState(false)
+    const [uploadError, setUploadError] = useState<string | null>(null)
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setIsUploading(true)
+        setUploadError(null)
+
+        try {
+            // Process image: validate, resize, and convert to base64
+            const result = await processImageFile(file, {
+                maxWidth: 400,
+                maxHeight: 400,
+                quality: 0.8,
+                resize: true,
+            })
+
+            setTempImg(result.base64)
+        } catch (error) {
+            setUploadError(
+                error instanceof Error
+                    ? error.message
+                    : 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ'
+            )
+        } finally {
+            setIsUploading(false)
+            // Clear the input so the same file can be selected again
+            e.target.value = ''
         }
     }
 
@@ -65,10 +93,22 @@ export default function ChangeProfile({
                                 รูปปัจจุบัน
                             </p>
                             <div className="flex h-[80px] w-[178px] items-center justify-center">
-                                <img
-                                    src={user.img}
-                                    className="box-border h-20 w-20 rounded-full border-[3px] border-white bg-cover bg-center"
-                                />
+                                {isBase64Image(user.img) ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img
+                                        src={user.img}
+                                        alt="รูปโปรไฟล์ปัจจุบัน"
+                                        className="box-border h-20 w-20 rounded-full border-[3px] border-white bg-cover bg-center object-cover"
+                                    />
+                                ) : (
+                                    <Image
+                                        src={user.img}
+                                        alt="รูปโปรไฟล์ปัจจุบัน"
+                                        width={80}
+                                        height={80}
+                                        className="box-border h-20 w-20 rounded-full border-[3px] border-white bg-cover bg-center"
+                                    />
+                                )}
                             </div>
                         </div>
                         {/* ตัวอย่าง */}
@@ -78,9 +118,12 @@ export default function ChangeProfile({
                                     ตัวอย่าง
                                 </p>
                                 <div className="flex h-[80px] w-[178px] items-center justify-center">
+                                    {/* Use img tag for base64 images as Next.js Image doesn't handle them well */}
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={tempImg}
-                                        className="box-border h-20 w-20 rounded-full border-[3px] border-white bg-cover bg-center"
+                                        alt="ตัวอย่างรูปโปรไฟล์"
+                                        className="box-border h-20 w-20 rounded-full border-[3px] border-white bg-cover bg-center object-cover"
                                     />
                                 </div>
                             </div>
@@ -90,26 +133,58 @@ export default function ChangeProfile({
                             <p className="h-[22px] w-[178px] text-[16px] leading-[140%] font-normal text-black">
                                 อัปโหลดรูป
                             </p>
-                            <label className="flex h-[93px] w-[178px] flex-col items-center gap-2 rounded-lg border border-dashed border-[#6B7280] p-3 px-7">
+                            <label
+                                className={`flex h-[93px] w-[178px] flex-col items-center gap-2 rounded-lg border border-dashed p-3 px-7 ${
+                                    isUploading
+                                        ? 'cursor-wait border-blue-400 bg-blue-50'
+                                        : uploadError
+                                          ? 'border-red-400 bg-red-50'
+                                          : 'cursor-pointer border-[#6B7280] hover:border-[#F24472] hover:bg-pink-50'
+                                }`}
+                            >
                                 <input
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp"
                                     onChange={(e) => {
-                                        handleUpload(e)
+                                        void handleUpload(e)
                                         setSelectedAvatar(null)
                                     }}
+                                    disabled={isUploading}
                                     hidden
                                 />
-                                <Upload
-                                    strokeWidth={1.5}
-                                    className="h-6 w-6 text-[#6B7280]"
-                                />
+                                {isUploading ? (
+                                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-blue-500"></div>
+                                ) : (
+                                    <Upload
+                                        strokeWidth={1.5}
+                                        className={`h-6 w-6 ${uploadError ? 'text-red-500' : 'text-[#6B7280]'}`}
+                                    />
+                                )}
                                 <div className="flex h-[37px] w-[122px] flex-col items-start gap-1">
-                                    <p className="h-[18px] w-[122px] text-center text-[13px] leading-[140%] font-normal text-[#6B7280]">
-                                        คลิกเพื่อเลือกรูป
+                                    <p
+                                        className={`h-[18px] w-[122px] text-center text-[13px] leading-[140%] font-normal ${
+                                            isUploading
+                                                ? 'text-blue-600'
+                                                : uploadError
+                                                  ? 'text-red-600'
+                                                  : 'text-[#6B7280]'
+                                        }`}
+                                    >
+                                        {isUploading
+                                            ? 'กำลังอัปโหลด...'
+                                            : uploadError
+                                              ? 'เกิดข้อผิดพลาด'
+                                              : 'คลิกเพื่อเลือกรูป'}
                                     </p>
-                                    <p className="h-[15px] w-[122px] text-center text-[11px] leading-[140%] font-normal text-[#6B7280]">
-                                        JPG, PNG ขนาดไม่เกิน 5MB
+                                    <p
+                                        className={`h-[15px] w-[122px] text-center text-[11px] leading-[140%] font-normal ${
+                                            uploadError
+                                                ? 'text-red-500'
+                                                : 'text-[#6B7280]'
+                                        }`}
+                                    >
+                                        {uploadError ??
+                                            'JPG, PNG, WebP (สูงสุด 5MB)'}
                                     </p>
                                 </div>
                             </label>
@@ -124,9 +199,12 @@ export default function ChangeProfile({
                         <div className="grid h-[328px] w-[344px] grid-cols-4 gap-x-2 gap-y-1">
                             {avatars.map((url, i) => (
                                 <div key={i} className="relative">
-                                    <img
+                                    <Image
                                         key={i}
                                         src={url}
+                                        alt={`ตัวเลือกรูปโปรไฟล์ ${i + 1}`}
+                                        width={80}
+                                        height={80}
                                         onClick={() => {
                                             setTempImg(url)
                                             setSelectedAvatar(url)

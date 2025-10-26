@@ -1,12 +1,15 @@
 'use client'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { ChevronDown, User, Settings, LogOut } from 'lucide-react'
 
 export default function Alreadylogin() {
-    const [messageCnt, setMessageCnt] = useState(4)
-    const [notifyCnt, setNotifyCnt] = useState(10)
-    const [name, setName] = useState('สมชาย โดว')
-    const [pathimg, setPathImg] = useState('/img/p2.jpg')
+    const [messageCnt] = useState(4)
+    const [notifyCnt] = useState(10)
+    const [showDropdown, setShowDropdown] = useState(false)
+    const { user, logout, isProvider } = useAuthContext()
 
     const notifyDisplay = notifyCnt > 9 ? '9+' : notifyCnt
     const messageCntDisplay = messageCnt > 9 ? '9+' : messageCnt
@@ -41,18 +44,65 @@ export default function Alreadylogin() {
                 )}
             </button>
 
-            <button className="flex cursor-pointer items-center gap-[10px] transition-all duration-300 hover:scale-105">
-                <div className="h-10 w-10">
-                    <Image
-                        src={pathimg}
-                        alt="smallprofile"
-                        width={40}
-                        height={40}
-                        className="rounded-full object-cover"
+            <div className="relative">
+                <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex cursor-pointer items-center gap-[10px] transition-all duration-300 hover:scale-105"
+                >
+                    <div className="size-8">
+                        <Image
+                            src={user?.img ?? '/img/p1.jpg'}
+                            alt="smallprofile"
+                            width={32}
+                            height={32}
+                            className="size-8 rounded-full object-cover"
+                        />
+                    </div>
+                    <div className="text-[16px] text-[#212b36]">
+                        {user?.username}
+                    </div>
+                    <ChevronDown
+                        className={`h-4 w-4 text-gray-600 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
                     />
-                </div>
-                <div className="text-[16px] text-[#212b36]">{name}</div>
-            </button>
+                </button>
+
+                {showDropdown && (
+                    <div className="absolute top-full right-0 z-50 mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                        <Link
+                            href="/profile"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setShowDropdown(false)}
+                        >
+                            <User className="h-4 w-4" />
+                            โปรไฟล์
+                        </Link>
+
+                        {isProvider && (
+                            <Link
+                                href="/servicemanage"
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                onClick={() => setShowDropdown(false)}
+                            >
+                                <Settings className="h-4 w-4" />
+                                จัดการบริการ
+                            </Link>
+                        )}
+
+                        <hr className="my-2" />
+
+                        <button
+                            onClick={() => {
+                                logout()
+                                setShowDropdown(false)
+                            }}
+                            className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                            <LogOut className="h-4 w-4" />
+                            ออกจากระบบ
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

@@ -1,16 +1,23 @@
 'use client'
 import Image from 'next/image'
-type AccountFieldsProps = {
-    formData: any
+interface FormData {
+    tel: string
+    gender: string
+    interestedGender: string
+}
+
+type ContactAndPreferenceProps = {
+    formData: FormData
     handleChange: (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => void
+    getFieldError?: (fieldName: string) => string | undefined
 }
 
 export default function ContactAndPreference({
     formData,
     handleChange,
-}: AccountFieldsProps) {
+}: ContactAndPreferenceProps) {
     return (
         <div>
             <div className="flex justify-center gap-4">

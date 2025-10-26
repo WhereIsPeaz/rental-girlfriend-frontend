@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import PrimaryButton from './ฺPrimaryButton'
+import PrimaryButton from './PrimaryButton'
 
 export default function SearchBox({
     placeholder = 'ค้นหาชื่อ, ความสนใจ, หรือประเภทบริการ...',

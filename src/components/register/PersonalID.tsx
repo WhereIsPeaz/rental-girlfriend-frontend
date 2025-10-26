@@ -1,12 +1,17 @@
 import Image from 'next/image'
-type AccountFieldsProps = {
-    formData: any
+interface FormData {
+    id: string
+}
+
+type PersonalIDProps = {
+    formData: FormData
     handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    getFieldError?: (fieldName: string) => string | undefined
 }
 export default function PersonalID({
     formData,
     handleChange,
-}: AccountFieldsProps) {
+}: PersonalIDProps) {
     return (
         <div>
             <div className="w-full">

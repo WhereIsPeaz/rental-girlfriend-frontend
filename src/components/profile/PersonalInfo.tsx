@@ -1,6 +1,18 @@
 import { Mail, User, Phone, Calendar, CreditCard } from 'lucide-react'
 
-export default function PersonalInfo({ user }: any) {
+interface User {
+    type: string
+    id: string
+    username: string
+    name: string
+    email: string
+    phone: string
+    birth: string
+    gender: string
+    interest: string
+}
+
+export default function PersonalInfo({ user }: { user: User }) {
     return (
         <div className="grid w-[469px] gap-4 rounded-[16px] bg-white p-6 shadow-[1px_4px_16px_rgba(0,0,0,0.1)]">
             <h2 className="h-[27px] w-[100px] text-[19px] leading-[140%] font-normal text-black">

@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Kanit } from 'next/font/google'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { updateUser as updateUserInStorage } from '@/lib/localStorage'
 
 import ProfileBanner from '@/components/profile/ProfileBanner'
 import PersonalInfo from '@/components/profile/PersonalInfo'
@@ -12,19 +15,57 @@ import ChangeProfile from '@/components/profile/ChangeProfile'
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
 export default function ProfilePage() {
-    const [user, setUser] = useState({
-        type: 'provider',
-        img: '/img/p2.jpg',
-        id: '1-xxxx-xxxx-x-33-7',
-        username: 'Lnwza007',
-        name: 'สมชาย โดว',
-        email: 'demo123@example.com',
-        phone: '089-xxx-xxxx',
-        birth: '01/10/2004',
-        gender: 'ชาย',
-        interest: 'หญิง',
-        joined: '2025',
+    const { user: authUser, updateUser, isAuthenticated } = useAuthContext()
+    const router = useRouter()
+
+    const getInitialUserData = () => ({
+        type: authUser?.type ?? 'customer',
+        img: authUser?.img ?? '/img/p2.jpg',
+        id: authUser?.idCard ?? '',
+        username: authUser?.username ?? '',
+        name: `${authUser?.firstName ?? ''} ${authUser?.lastName ?? ''}`.trim(),
+        email: authUser?.email ?? '',
+        phone: authUser?.phone ?? '',
+        birth: authUser?.birthdate ?? '',
+        gender: authUser?.gender ?? '',
+        interest: authUser?.interestedGender ?? '',
+        joined: authUser?.joined ?? '',
     })
+
+    const [user, setUser] = useState(getInitialUserData)
+
+    // Track if we're currently updating to prevent useEffect from overriding
+    const [isUpdating, setIsUpdating] = useState(false)
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            router.push('/login')
+            return
+        }
+
+        // Don't update state if we're currently in the middle of an update
+        if (isUpdating) {
+            return
+        }
+
+        if (authUser) {
+            const newUserData = {
+                type: authUser.type,
+                img: authUser.img,
+                id: authUser.idCard,
+                username: authUser.username,
+                name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
+                email: authUser.email,
+                phone: authUser.phone,
+                birth: authUser.birthdate,
+                gender: authUser.gender,
+                interest: authUser.interestedGender,
+                joined: authUser.joined,
+            }
+            setUser(newUserData)
+            setDraft(newUserData) // sync draft ด้วย
+        }
+    }, [authUser, isAuthenticated, router, isUpdating])
 
     const [changeProfile, setChangeProfile] = useState(false)
 
@@ -32,7 +73,7 @@ export default function ProfilePage() {
 
     const [editProfile, setEditProfile] = useState(false)
 
-    const [draft, setDraft] = useState(user)
+    const [draft, setDraft] = useState(getInitialUserData)
 
     const handleDraftChange = (key: string, value: string) => {
         setDraft({ ...draft, [key]: value })
@@ -40,8 +81,64 @@ export default function ProfilePage() {
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault()
-        setUser(draft)
-        console.log('Profile saved:', draft)
+
+        if (!authUser) {
+            return
+        }
+
+        // แปลงข้อมูลกลับเป็นรูปแบบ User
+        const [firstName, ...lastNameParts] = draft.name.split(' ')
+        const lastName = lastNameParts.join(' ') ?? ''
+
+        try {
+            setIsUpdating(true) // Set flag to prevent useEffect from overriding
+
+            // อัปเดตใน localStorage
+            const updatedUserData = updateUserInStorage(authUser.id, {
+                firstName: firstName ?? '',
+                lastName,
+                username: draft.username,
+                email: draft.email,
+                phone: draft.phone,
+                birthdate: draft.birth,
+                gender: draft.gender,
+                interestedGender: draft.interest,
+                img: draft.img,
+            })
+
+            // อัปเดต context
+            updateUser(updatedUserData)
+
+            // อัปเดต state ให้สอดคล้องกัน (ใช้ข้อมูลจาก updatedUserData)
+            const newUserData = {
+                type: updatedUserData.type,
+                img: updatedUserData.img,
+                id: updatedUserData.idCard,
+                username: updatedUserData.username,
+                name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
+                email: updatedUserData.email,
+                phone: updatedUserData.phone,
+                birth: updatedUserData.birthdate,
+                gender: updatedUserData.gender,
+                interest: updatedUserData.interestedGender,
+                joined: updatedUserData.joined,
+            }
+            setUser(newUserData)
+            setDraft(newUserData)
+            setEditProfile(false) // ปิด edit mode หลังบันทึกสำเร็จ
+
+            // Reset the updating flag after a short delay to allow state to settle
+            setTimeout(() => {
+                setIsUpdating(false)
+            }, 100)
+        } catch (error) {
+            setIsUpdating(false) // Reset flag on error
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล'
+            )
+        }
     }
 
     const avatars = [
@@ -101,11 +198,44 @@ export default function ProfilePage() {
                     setChangeProfile={() => setChangeProfile(false)}
                     setTempImg={(url) => setTempImg(url)}
                     saveProfile={() => {
-                        if (tempImg) {
-                            setDraft({ ...draft, img: tempImg })
-                            setUser({ ...user, img: tempImg })
-                            setChangeProfile(false)
-                            setTempImg(null)
+                        if (tempImg && authUser) {
+                            try {
+                                // อัปเดตใน localStorage
+                                const updatedUserData = updateUserInStorage(
+                                    authUser.id,
+                                    {
+                                        img: tempImg,
+                                    }
+                                )
+
+                                // อัปเดต context
+                                updateUser(updatedUserData)
+
+                                // อัปเดต state ทั้งหมดให้สอดคล้องกัน (ใช้ข้อมูลจาก updatedUserData)
+                                const newUserData = {
+                                    type: updatedUserData.type,
+                                    img: updatedUserData.img,
+                                    id: updatedUserData.idCard,
+                                    username: updatedUserData.username,
+                                    name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
+                                    email: updatedUserData.email,
+                                    phone: updatedUserData.phone,
+                                    birth: updatedUserData.birthdate,
+                                    gender: updatedUserData.gender,
+                                    interest: updatedUserData.interestedGender,
+                                    joined: updatedUserData.joined,
+                                }
+                                setUser(newUserData)
+                                setDraft(newUserData)
+                                setChangeProfile(false)
+                                setTempImg(null)
+                            } catch (error) {
+                                alert(
+                                    error instanceof Error
+                                        ? error.message
+                                        : 'เกิดข้อผิดพลาดในการอัปเดตรูปโปรไฟล์'
+                                )
+                            }
                         }
                     }}
                 />
