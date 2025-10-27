@@ -50,7 +50,9 @@ export default function SearchBox({
                     >
                         <SlidersHorizontal className={'h-4 w-4'} />
                     </button>
-                    <PrimaryButton title="ค้นหา" />
+                    <PrimaryButton title="ค้นหา" onClick = {() => { 
+                        // TODO: implement search logic
+                    }}/>
                 </div>
             </div>
 
@@ -157,7 +159,9 @@ export default function SearchBox({
                     >
                         ล้างตัวกรอง
                     </button>
-                    <PrimaryButton title="ใช้ตัวกรอง" />
+                    <PrimaryButton title="ใช้ตัวกรอง" onClick = {() => {
+                        // TODO: implement search logic
+                    }} />
                 </div>
             </div>
         </form>
