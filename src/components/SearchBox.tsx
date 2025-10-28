@@ -2,30 +2,51 @@
 
 import { useState } from 'react'
 import { Search, SlidersHorizontal } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import PrimaryButton from './PrimaryButton'
+
+interface FilterState {
+    query: string
+    activity: string
+    gender: string
+    priceMin: string
+    priceMax: string
+    minRating: string
+}
 
 export default function SearchBox({
     placeholder = 'ค้นหาชื่อ, ความสนใจ, หรือประเภทบริการ...',
-    defaultQuery = '',
+    filters,
+    onFilterChange,
+    onClearFilters,
 }: {
     placeholder?: string
-    defaultQuery?: string
+    filters?: FilterState
+    onFilterChange?: (filters: Partial<FilterState>) => void
+    onClearFilters?: () => void
 }) {
-    const [q, setQ] = useState(defaultQuery)
     const [open, setOpen] = useState(false)
 
-    const [activity, setActivity] = useState('')
-    const [gender, setGender] = useState('')
+    // Use filters from props or fallback to local state
+    const currentFilters = filters ?? {
+        query: '',
+        activity: '',
+        gender: '',
+        priceMin: '',
+        priceMax: '',
+        minRating: '',
+    }
 
-    const router = useRouter()
+    // Handle input changes
+    const handleInputChange = (field: keyof FilterState, value: string) => {
+        if (onFilterChange) {
+            onFilterChange({ [field]: value })
+        }
+    }
 
     function submit(e: React.FormEvent) {
         e.preventDefault()
-        const query = q.trim()
-        router.push(
-            query ? `/services?q=${encodeURIComponent(query)}` : '/services'
-        )
+        // The search is now handled by the parent component through onFilterChange
+        // This function is kept for form submission compatibility
     }
 
     return (
@@ -33,8 +54,8 @@ export default function SearchBox({
             {/* แถวค้นหา */}
             <div className="relative">
                 <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
+                    value={currentFilters.query}
+                    onChange={(e) => handleInputChange('query', e.target.value)}
                     placeholder={placeholder}
                     className="focus:black h-12 w-full rounded-md border border-gray-300/40 bg-white pr-40 pl-12 text-[13px] text-gray-500 placeholder:text-[#BFC7D8] focus:ring-1 focus:ring-black focus:outline-none md:h-14"
                 />
@@ -50,9 +71,7 @@ export default function SearchBox({
                     >
                         <SlidersHorizontal className={'h-4 w-4'} />
                     </button>
-                    <PrimaryButton title="ค้นหา" onClick = {() => { 
-                        // TODO: implement search logic
-                    }}/>
+                    <PrimaryButton title="ค้นหา" />
                 </div>
             </div>
 
@@ -69,10 +88,14 @@ export default function SearchBox({
                             กิจกรรมที่สนใจ
                         </div>
                         <select
-                            value={activity}
-                            onChange={(e) => setActivity(e.target.value)}
+                            value={currentFilters.activity}
+                            onChange={(e) =>
+                                handleInputChange('activity', e.target.value)
+                            }
                             className={`h-10 w-140 rounded-md border border-gray-300/40 bg-white pr-3 pl-3 text-sm ${
-                                activity ? 'text-gray-700' : 'text-[#BFC7D8]'
+                                currentFilters.activity
+                                    ? 'text-gray-700'
+                                    : 'text-[#BFC7D8]'
                             }`}
                         >
                             <option value="" disabled hidden>
@@ -101,10 +124,14 @@ export default function SearchBox({
                             เพศ
                         </div>
                         <select
-                            value={gender}
-                            onChange={(e) => setGender(e.target.value)}
+                            value={currentFilters.gender}
+                            onChange={(e) =>
+                                handleInputChange('gender', e.target.value)
+                            }
                             className={`mr-5 ml-5 h-10 w-25 rounded-md border border-gray-300/40 bg-white px-3 text-sm ${
-                                gender ? 'text-gray-700' : 'text-[#BFC7D8]'
+                                currentFilters.gender
+                                    ? 'text-gray-700'
+                                    : 'text-[#BFC7D8]'
                             }`}
                         >
                             <option value="" disabled hidden>
@@ -123,12 +150,28 @@ export default function SearchBox({
                         </div>
                         <div className="flex items-center gap-2">
                             <input
+                                type="number"
                                 placeholder="ขั้นต่ำ"
+                                value={currentFilters.priceMin}
+                                onChange={(e) =>
+                                    handleInputChange(
+                                        'priceMin',
+                                        e.target.value
+                                    )
+                                }
                                 className="h-10 w-25.5 rounded-md border border-gray-300/40 bg-white px-3 text-center text-sm placeholder:text-[#BFC7D8]"
                             />
                             <span className="text-gray-400">-</span>
                             <input
+                                type="number"
                                 placeholder="สูงสุด"
+                                value={currentFilters.priceMax}
+                                onChange={(e) =>
+                                    handleInputChange(
+                                        'priceMax',
+                                        e.target.value
+                                    )
+                                }
                                 className="h-10 w-25.5 rounded-md border border-gray-300/40 bg-white px-3 text-center text-sm placeholder:text-[#BFC7D8]"
                             />
                         </div>
@@ -139,15 +182,25 @@ export default function SearchBox({
                         <div className="mb-2 ml-7.5 text-sm font-medium text-gray-700">
                             คะแนนขั้นต่ำ
                         </div>
-                        <select className="ml-5 h-10 w-40 rounded-md border border-gray-300/40 bg-white px-3 text-sm placeholder:text-[#BFC7D8]">
-                            <option disabled hidden>
+                        <select
+                            value={currentFilters.minRating}
+                            onChange={(e) =>
+                                handleInputChange('minRating', e.target.value)
+                            }
+                            className={`ml-5 h-10 w-40 rounded-md border border-gray-300/40 bg-white px-3 text-sm ${
+                                currentFilters.minRating
+                                    ? 'text-gray-700'
+                                    : 'text-[#BFC7D8]'
+                            }`}
+                        >
+                            <option value="" disabled hidden>
                                 เลือกคะแนนขั้นต่ำ
                             </option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
+                            <option value="1">1 ดาว</option>
+                            <option value="2">2 ดาว</option>
+                            <option value="3">3 ดาว</option>
+                            <option value="4">4 ดาว</option>
+                            <option value="5">5 ดาว</option>
                         </select>
                     </div>
                 </div>
@@ -155,13 +208,15 @@ export default function SearchBox({
                 <div className="mt-3 flex items-center justify-end gap-3">
                     <button
                         type="button"
+                        onClick={onClearFilters}
                         className="h-10 cursor-pointer rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 transition-all duration-300 hover:scale-105"
                     >
                         ล้างตัวกรอง
                     </button>
-                    <PrimaryButton title="ใช้ตัวกรอง" onClick = {() => {
-                        // TODO: implement search logic
-                    }} />
+                    <PrimaryButton
+                        title="ใช้ตัวกรอง"
+                        onClick={() => setOpen(false)}
+                    />
                 </div>
             </div>
         </form>
