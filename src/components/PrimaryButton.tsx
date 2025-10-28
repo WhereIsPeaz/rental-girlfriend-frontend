@@ -1,6 +1,9 @@
-"use client"
+type Props = {
+    title: string
+    onClick?: () => void
+}
 
-export default function PrimaryButton({ title, onClick }: { title: string; onClick: () => void }) {
+export default function PrimaryButton({ title, onClick }: Props) {
     return (
         <button
             type="button"

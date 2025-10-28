@@ -7,6 +7,7 @@ import CardContent from './card/CardContent'
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
 type Props = {
+    id: string | number
     Name: string
     Age: number
     Rating: number
@@ -23,6 +24,7 @@ type Props = {
 }
 
 export default function Card({
+    id,
     Name,
     Age,
     Rating,
