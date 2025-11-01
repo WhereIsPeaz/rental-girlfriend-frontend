@@ -15,6 +15,7 @@ import {
 import AddServiceCard from '@/components/AddServiceCard'
 import ServiceModal from '@/components/ServiceModal'
 import Card from '@/components/Card'
+import EditButton from '@/components/EditButton'
 import toast from 'react-hot-toast'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
@@ -111,7 +112,7 @@ export default function ServiceMangePage() {
                                 บริการของฉัน
                             </div>
 
-                            <div className="flex flex-wrap content-center justify-start gap-4">
+                            <div className="grid grid-cols-3 content-center justify-start gap-4">
                                 {services.map((service) => {
                                     // คำนวณอายุจากวันเกิด
                                     const birthYear = new Date(
@@ -121,41 +122,39 @@ export default function ServiceMangePage() {
                                     const age = currentYear - birthYear
 
                                     return (
-                                        <div
+                                        <Card
                                             key={service.id}
-                                            onClick={() =>
-                                                openEditModal(service)
+                                            id={service.id}
+                                            Name={`${service.name}`}
+                                            Age={age}
+                                            Rating={service.rating}
+                                            Location="กรุงเทพมหานคร"
+                                            Description={service.description}
+                                            Type={
+                                                service.rating >= 4.8
+                                                    ? 'แนะนำ'
+                                                    : ''
                                             }
-                                            className="w-full cursor-pointer"
-                                        >
-                                            <Card
-                                                Name={`${service.name}`}
-                                                Age={age}
-                                                Rating={service.rating}
-                                                Location="กรุงเทพมหานคร"
-                                                Description={
-                                                    service.description
-                                                }
-                                                Type={
-                                                    service.rating >= 4.8
-                                                        ? 'แนะนำ'
-                                                        : ''
-                                                }
-                                                PriceHr={service.priceHour}
-                                                PriceD={service.priceDay}
-                                                Review={`จองแล้ว ${service.bookingCount} ครั้ง`}
-                                                ReviewCount={
-                                                    service.reviewCount
-                                                }
-                                                imgSrc={
-                                                    service.images[0] ??
-                                                    user?.img ??
-                                                    '/img/provider1.png'
-                                                }
-                                                buttonTitle="แก้ไข"
-                                                Categories={service.categories}
-                                            />
-                                        </div>
+                                            PriceHr={service.priceHour}
+                                            PriceD={service.priceDay}
+                                            Review={`จองแล้ว ${service.bookingCount} ครั้ง`}
+                                            ReviewCount={service.reviewCount}
+                                            imgSrc={
+                                                service.images[0] ??
+                                                user?.img ??
+                                                '/img/provider1.png'
+                                            }
+                                            buttonTitle="แก้ไข"
+                                            Categories={service.categories}
+                                            customButton={
+                                                <EditButton
+                                                    title="แก้ไข"
+                                                    onClick={() =>
+                                                        openEditModal(service)
+                                                    }
+                                                />
+                                            }
+                                        />
                                     )
                                 })}
                             </div>

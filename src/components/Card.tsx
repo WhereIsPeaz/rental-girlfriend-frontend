@@ -3,6 +3,7 @@ import PrimaryButton from './PrimaryButton'
 import CardHeader from './card/CardHeader'
 import CardFooter from './card/CardFooter'
 import CardContent from './card/CardContent'
+import React from 'react' // Import React for React.ReactNode
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
@@ -21,6 +22,7 @@ type Props = {
     imgSrc: string
     buttonTitle: string
     Categories?: string[] // เพิ่ม categories prop
+    customButton?: React.ReactNode
 }
 
 export default function Card({
@@ -38,6 +40,7 @@ export default function Card({
     imgSrc,
     buttonTitle,
     Categories = [], // เพิ่ม Categories prop พร้อม default value
+    customButton,
 }: Props) {
     const priceHr = PriceHr.toLocaleString('th-TH')
     const priceD = PriceD.toLocaleString('th-TH')
@@ -46,7 +49,12 @@ export default function Card({
         <div
             className={`${kanit.className} m-4 h-121 w-full max-w-90 overflow-hidden rounded-[12px] border border-gray-100 bg-white shadow-sm`}
         >
-            <CardHeader imgSrc={imgSrc} name={Name} type={Type} rating={Rating} />
+            <CardHeader
+                imgSrc={imgSrc}
+                name={Name}
+                type={Type}
+                rating={Rating}
+            />
 
             <CardContent
                 name={Name}
@@ -68,9 +76,17 @@ export default function Card({
                             ฿ {priceD} / วัน
                         </div>
                     </div>
-                    <PrimaryButton title={buttonTitle} onClick={() => {
-                        // TODO: implement search logic
-                    }} />
+
+                    {customButton ? (
+                        customButton
+                    ) : (
+                        <PrimaryButton
+                            title={buttonTitle}
+                            onClick={() => {
+                                // TODO: implement search logic
+                            }}
+                        />
+                    )}
                 </div>
             </div>
             <hr className="border-0 border-t border-t-[#E1E7F4]/60" />
