@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Kanit } from 'next/font/google'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { updateUser as updateUserInStorage } from '@/lib/localStorage'
+import toast from 'react-hot-toast'
 
 import ProfileBanner from '@/components/profile/ProfileBanner'
 import PersonalInfo from '@/components/profile/PersonalInfo'
@@ -79,7 +80,7 @@ export default function ProfilePage() {
         setDraft({ ...draft, [key]: value })
     }
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
 
         if (!authUser) {
@@ -90,8 +91,16 @@ export default function ProfilePage() {
         const [firstName, ...lastNameParts] = draft.name.split(' ')
         const lastName = lastNameParts.join(' ') ?? ''
 
+        // Show loading toast
+        const processingToast = toast.loading('กำลังอัปเดตข้อมูลโปรไฟล์...', {
+            duration: Infinity,
+        })
+
         try {
             setIsUpdating(true) // Set flag to prevent useEffect from overriding
+
+            // Simulate API delay for profile update
+            await new Promise((resolve) => setTimeout(resolve, 1500))
 
             // อัปเดตใน localStorage
             const updatedUserData = updateUserInStorage(authUser.id, {
@@ -127,16 +136,26 @@ export default function ProfilePage() {
             setDraft(newUserData)
             setEditProfile(false) // ปิด edit mode หลังบันทึกสำเร็จ
 
+            // Show success toast
+            toast.dismiss(processingToast)
+            toast.success('อัปเดตข้อมูลโปรไฟล์สำเร็จ! ✅', {
+                duration: 3000,
+            })
+
             // Reset the updating flag after a short delay to allow state to settle
             setTimeout(() => {
                 setIsUpdating(false)
             }, 100)
         } catch (error) {
             setIsUpdating(false) // Reset flag on error
-            alert(
+            toast.dismiss(processingToast)
+            toast.error(
                 error instanceof Error
                     ? error.message
-                    : 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล'
+                    : 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
+                {
+                    duration: 4000,
+                }
             )
         }
     }
@@ -229,11 +248,19 @@ export default function ProfilePage() {
                                 setDraft(newUserData)
                                 setChangeProfile(false)
                                 setTempImg(null)
+
+                                // Show success toast
+                                toast.success('อัปเดตรูปโปรไฟล์สำเร็จ! 📸', {
+                                    duration: 3000,
+                                })
                             } catch (error) {
-                                alert(
+                                toast.error(
                                     error instanceof Error
                                         ? error.message
-                                        : 'เกิดข้อผิดพลาดในการอัปเดตรูปโปรไฟล์'
+                                        : 'เกิดข้อผิดพลาดในการอัปเดตรูปโปรไฟล์',
+                                    {
+                                        duration: 4000,
+                                    }
                                 )
                             }
                         }
