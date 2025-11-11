@@ -272,7 +272,7 @@ export default function PaymentPage() {
                                     toast.success('กำลังไปหน้าสถานะการจอง', {
                                         duration: 2000,
                                     })
-                                    router.push('/bookings')
+                                    router.push('/booking')
                                 }}
                                 className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 py-3 font-semibold text-white transition-all hover:from-pink-600 hover:to-rose-600"
                             >
