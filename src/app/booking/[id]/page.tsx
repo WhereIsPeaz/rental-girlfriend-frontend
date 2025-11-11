@@ -1,480 +1,564 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import {
-    Calendar,
-    Clock,
-    User,
-    MessageCircle,
-    Star,
-    AlertCircle,
-} from 'lucide-react'
+import { Calendar, Clock, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useAuthContext } from '@/contexts/AuthContext'
 import {
+    getServices,
     getUsers,
-    getBookingsByCustomer,
-    cancelBookingWithRefund,
     initializeSampleData,
-    type User as UserType,
-    type Booking,
+    type Service,
+    type User,
 } from '@/lib/localStorage'
-import Link from 'next/link'
-import toast from 'react-hot-toast'
 
-const Bookings: React.FC = () => {
+export default function BookingPage() {
+    const { id } = useParams()
+    const router = useRouter()
     const { user, isAuthenticated } = useAuthContext()
-    const [bookings, setBookings] = useState<Booking[]>([])
-    const [providers, setProviders] = useState<Record<string, UserType>>({})
-    const [activeTab, setActiveTab] = useState<
-        'upcoming' | 'completed' | 'cancelled'
-    >('upcoming')
 
-    const loadBookings = useCallback(async () => {
-        if (!user) return
+    const [service, setService] = useState<Service | null>(null)
+    const [provider, setProvider] = useState<User | null>(null)
+    const [loading, setLoading] = useState(true)
 
-        try {
-            // Simulate API delay for booking data loading
-            await new Promise((resolve) => setTimeout(resolve, 500))
-
-            // Get bookings for current customer
-            const userBookings =
-                user.type === 'customer' ? getBookingsByCustomer(user.id) : []
-
-            setBookings(userBookings)
-
-            // Load provider data
-            const users = getUsers()
-            const userData: Record<string, UserType> = {}
-
-            userBookings.forEach((booking) => {
-                const provider = users.find((u) => u.id === booking.providerId)
-                if (provider) {
-                    userData[booking.providerId] = provider
-                }
-            })
-
-            setProviders(userData)
-        } catch {
-            toast.error('ไม่สามารถโหลดข้อมูลการจองได้')
-        }
-    }, [user])
+    const [bookingData, setBookingData] = useState({
+        date: '',
+        startTime: '',
+        endTime: '',
+        duration: 1,
+        serviceType: 'hourly',
+        specialRequests: '',
+    })
+    const [isLoading, setIsLoading] = useState(false)
+    const [errors, setErrors] = useState<Record<string, string>>({})
 
     useEffect(() => {
         // Initialize sample data if needed
         initializeSampleData()
 
-        if (user && isAuthenticated) {
-            void loadBookings()
+        // Check authentication
+        if (!isAuthenticated) {
+            router.push('/login')
+            return
         }
-    }, [user, isAuthenticated, loadBookings])
 
-    const getStatusColor = (status: Booking['status']) => {
-        switch (status) {
-            case 'pending':
-                return 'bg-yellow-100 text-yellow-800'
-            case 'confirmed':
-                return 'bg-green-100 text-green-800'
-            case 'completed':
-                return 'bg-blue-100 text-blue-800'
-            case 'cancelled':
-                return 'bg-red-100 text-red-800'
-            default:
-                return 'bg-gray-100 text-gray-800'
+        if (!user || user.type !== 'customer') {
+            toast.error('เฉพาะลูกค้าเท่านั้นที่สามารถจองบริการได้')
+            router.push('/services')
+            return
+        }
+
+        if (!id) {
+            router.push('/services')
+            return
+        }
+
+        // Load service data
+        const services = getServices()
+        const foundService = services.find((s) => s.id === String(id))
+
+        if (!foundService) {
+            toast.error('ไม่พบบริการที่ต้องการ')
+            router.push('/services')
+            return
+        }
+
+        setService(foundService)
+
+        // Load provider data
+        const users = getUsers()
+        const foundProvider = users.find(
+            (u) => u.id === foundService.providerId
+        )
+
+        if (!foundProvider) {
+            toast.error('ไม่พบผู้ให้บริการ')
+            router.push('/services')
+            return
+        }
+
+        setProvider(foundProvider)
+        setLoading(false)
+    }, [id, router, isAuthenticated, user])
+
+    const calculateTotal = () => {
+        if (!service) return 0
+
+        if (bookingData.serviceType === 'daily') {
+            return service.priceDay
+        } else {
+            return service.priceHour * bookingData.duration
         }
     }
 
-    const getStatusText = (status: Booking['status']) => {
-        switch (status) {
-            case 'pending':
-                return 'รอยืนยัน'
-            case 'confirmed':
-                return 'ยืนยันแล้ว'
-            case 'completed':
-                return 'เสร็จสิ้น'
-            case 'cancelled':
-                return 'ยกเลิก'
-            default:
-                return status
-        }
+    const calculateDeposit = () => {
+        return calculateTotal() // 100% payment instead of 50% deposit
     }
 
-    const filteredBookings = bookings.filter((booking) => {
-        switch (activeTab) {
-            case 'upcoming':
-                return (
-                    booking.status === 'pending' ||
-                    booking.status === 'confirmed'
-                )
-            case 'completed':
-                return booking.status === 'completed'
-            case 'cancelled':
-                return booking.status === 'cancelled'
-            default:
-                return true
-        }
-    })
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {}
 
-    const handleCancelBooking = (bookingId: string) => {
-        const booking = bookings.find((b) => b.id === bookingId)
-        if (!booking) return
+        if (!bookingData.date) {
+            newErrors.date = 'กรุณาเลือกวันที่'
+        } else {
+            const selectedDate = new Date(bookingData.date)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
 
-        toast(
-            (t) => (
-                <div className="flex flex-col gap-3">
-                    <p className="font-medium text-gray-900">
-                        คุณแน่ใจหรือไม่ที่จะยกเลิกการจองนี้?
-                    </p>
-                    <p className="text-sm text-gray-600">
-                        การยกเลิกโดยลูกค้า: คืนเงิน 50% (฿
-                        {Math.floor(booking.totalAmount * 0.5).toLocaleString()}
-                        ) และจ่าย 50% ให้ผู้ให้บริการ
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={async () => {
-                                toast.dismiss(t.id)
-
-                                // Show loading toast
-                                const processingToast = toast.loading(
-                                    'กำลังยกเลิกการจอง...',
-                                    {
-                                        duration: Infinity,
-                                    }
-                                )
-
-                                try {
-                                    // Simulate API delay for booking cancellation
-                                    await new Promise((resolve) =>
-                                        setTimeout(resolve, 1500)
-                                    )
-
-                                    // Cancel booking with refund logic
-                                    cancelBookingWithRefund(
-                                        bookingId,
-                                        'customer',
-                                        'ยกเลิกโดยลูกค้า'
-                                    )
-
-                                    // Update local state
-                                    setBookings((prev) =>
-                                        prev.map((booking) =>
-                                            booking.id === bookingId
-                                                ? {
-                                                      ...booking,
-                                                      status: 'cancelled' as const,
-                                                      cancelledBy:
-                                                          'customer' as const,
-                                                      paymentStatus:
-                                                          'partially_refunded' as const,
-                                                  }
-                                                : booking
-                                        )
-                                    )
-
-                                    toast.dismiss(processingToast)
-                                    toast.success(
-                                        'ยกเลิกการจองเรียบร้อยแล้ว เงินจะถูกคืนให้ 50%',
-                                        {
-                                            duration: 4000,
-                                        }
-                                    )
-                                } catch (error: unknown) {
-                                    toast.dismiss(processingToast)
-                                    toast.error(
-                                        (error as Error).message ??
-                                            'เกิดข้อผิดพลาดในการยกเลิกการจอง'
-                                    )
-                                }
-                            }}
-                            className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
-                        >
-                            ยืนยันยกเลิก
-                        </button>
-                        <button
-                            onClick={() => toast.dismiss(t.id)}
-                            className="rounded bg-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-400"
-                        >
-                            ยกเลิก
-                        </button>
-                    </div>
-                </div>
-            ),
-            {
-                duration: Infinity,
+            if (selectedDate < today) {
+                newErrors.date = 'ไม่สามารถจองย้อนหลังได้'
             }
+        }
+
+        if (!bookingData.startTime) {
+            newErrors.startTime = 'กรุณาเลือกเวลาเริ่มต้น'
+        }
+
+        if (bookingData.serviceType === 'hourly' && !bookingData.endTime) {
+            newErrors.endTime = 'กรุณาเลือกเวลาสิ้นสุด'
+        }
+
+        if (
+            bookingData.serviceType === 'hourly' &&
+            bookingData.startTime &&
+            bookingData.endTime
+        ) {
+            const start = new Date(`2000-01-01 ${bookingData.startTime}`)
+            const end = new Date(`2000-01-01 ${bookingData.endTime}`)
+
+            if (end <= start) {
+                newErrors.endTime = 'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น'
+            } else {
+                const duration =
+                    (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+                setBookingData((prev) => ({ ...prev, duration }))
+            }
+        }
+
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        if (!validateForm() || !service || !provider || !user) return
+
+        setIsLoading(true)
+
+        // Show loading toast
+        const processingToast = toast.loading('กำลังเตรียมข้อมูลการจอง...', {
+            duration: Infinity,
+        })
+
+        try {
+            // Simulate form processing delay
+            await new Promise((resolve) => setTimeout(resolve, 1200))
+
+            const totalAmount = calculateTotal()
+            const depositAmount = calculateDeposit()
+
+            // Store booking data in sessionStorage for payment page
+            const bookingDataForPayment = {
+                ...bookingData,
+                totalAmount,
+                depositAmount,
+                serviceName: service.name,
+            }
+
+            sessionStorage.setItem(
+                `bookingData_${service.id}`,
+                JSON.stringify(bookingDataForPayment)
+            )
+
+            toast.dismiss(processingToast)
+            toast.success('ข้อมูลการจองพร้อมแล้ว!')
+
+            // Navigate to payment page
+            setTimeout(() => {
+                router.push(`/payments/${service.id}`)
+            }, 1000)
+        } catch (error) {
+            console.error('Booking error:', error)
+            toast.dismiss(processingToast)
+            setErrors({
+                general: 'เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่อีกครั้ง',
+            })
+            toast.error('เกิดข้อผิดพลาดในการจอง')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-pink-500"></div>
+            </div>
         )
     }
 
-    const handleReviewBooking = (_bookingId: string) => {
-        toast.success('เปิดหน้าให้รีวิว', {
-            duration: 2000,
-        })
-        // Here you would navigate to review page
-        // router.push(`/review/${bookingId}`)
-    }
-
-    const handleSendMessage = (_userId: string) => {
-        toast.success('เปิดหน้าแชท', {
-            duration: 2000,
-        })
-        // Here you would navigate to chat page
-        // router.push(`/chat/${userId}`)
-    }
-
-    if (!isAuthenticated) {
+    if (!service || !provider) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gray-50">
+            <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
                     <h2 className="mb-4 text-2xl font-bold text-gray-900">
-                        กรุณาเข้าสู่ระบบ
+                        ไม่พบบริการที่ต้องการ
                     </h2>
-                    <p className="mb-6 text-gray-600">
-                        คุณต้องเข้าสู่ระบบเพื่อดูการจองของคุณ
-                    </p>
-                    <Link
-                        href="/login"
+                    <button
+                        onClick={() => router.push('/services')}
                         className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-3 font-semibold text-white transition-all hover:from-pink-600 hover:to-rose-600"
                     >
-                        เข้าสู่ระบบ
-                    </Link>
+                        กลับไปหน้าบริการ
+                    </button>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                {/* Header */}
+        <div className="min-h-screen bg-gray-50 py-8">
+            <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
                 <div className="mb-8">
                     <h1 className="mb-2 text-3xl font-bold text-gray-900">
-                        การจองของฉัน
+                        จองบริการ
                     </h1>
-                    <p className="text-gray-600">
-                        ตรวจสอบสถานะการจองและประวัติการใช้บริการ
-                    </p>
+                    <p className="text-gray-600">กรอกข้อมูลการจองของคุณ</p>
                 </div>
 
-                {/* Tabs */}
-                <div className="mb-8 rounded-2xl bg-white shadow-sm">
-                    <div className="flex">
-                        <button
-                            onClick={() => setActiveTab('upcoming')}
-                            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                                activeTab === 'upcoming'
-                                    ? 'border-b-2 border-pink-600 bg-pink-50 text-pink-600'
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* Booking Form */}
+                    <div className="lg:col-span-2">
+                        <form
+                            onSubmit={handleSubmit}
+                            className="rounded-2xl bg-white p-6 shadow-sm"
                         >
-                            การจองที่จะมาถึง
-                            <span className="ml-2 rounded-full bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
-                                {
-                                    bookings.filter(
-                                        (b) =>
-                                            b.status === 'pending' ||
-                                            b.status === 'confirmed'
-                                    ).length
-                                }
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('completed')}
-                            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                                activeTab === 'completed'
-                                    ? 'border-b-2 border-pink-600 bg-pink-50 text-pink-600'
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
-                        >
-                            เสร็จสิ้นแล้ว
-                            <span className="ml-2 rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800">
-                                {
-                                    bookings.filter(
-                                        (b) => b.status === 'completed'
-                                    ).length
-                                }
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('cancelled')}
-                            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                                activeTab === 'cancelled'
-                                    ? 'border-b-2 border-pink-600 bg-pink-50 text-pink-600'
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
-                        >
-                            ยกเลิก
-                            <span className="ml-2 rounded-full bg-red-100 px-2 py-1 text-xs text-red-800">
-                                {
-                                    bookings.filter(
-                                        (b) => b.status === 'cancelled'
-                                    ).length
-                                }
-                            </span>
-                        </button>
-                    </div>
-                </div>
+                            {errors.general && (
+                                <div className="mb-6 flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                                    <AlertCircle className="h-5 w-5" />
+                                    <span>{errors.general}</span>
+                                </div>
+                            )}
 
-                {/* Bookings List */}
-                {filteredBookings.length === 0 ? (
-                    <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
-                        <AlertCircle className="mx-auto mb-4 h-16 w-16 text-gray-400" />
-                        <h3 className="mb-2 text-xl font-semibold text-gray-900">
-                            ไม่มีการจอง
-                        </h3>
-                        <p className="mb-6 text-gray-600">
-                            {activeTab === 'upcoming' &&
-                                'ยังไม่มีการจองที่จะมาถึง'}
-                            {activeTab === 'completed' &&
-                                'ยังไม่มีการจองที่เสร็จสิ้น'}
-                            {activeTab === 'cancelled' &&
-                                'ไม่มีการจองที่ถูกยกเลิก'}
-                        </p>
-                        <Link
-                            href="/services"
-                            className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-3 font-semibold text-white transition-all hover:from-pink-600 hover:to-rose-600"
-                        >
-                            เริ่มค้นหาบริการ
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {filteredBookings.map((booking) => {
-                            const provider = providers[booking.providerId]
-
-                            if (!provider) return null
-
-                            return (
-                                <div
-                                    key={booking.id}
-                                    className="rounded-2xl bg-white p-6 shadow-sm"
-                                >
-                                    <div className="mb-4 flex items-start justify-between">
-                                        <div className="flex items-center space-x-4">
-                                            <Image
-                                                src={
-                                                    provider.img ||
-                                                    '/img/p1.jpg'
-                                                }
-                                                alt={provider.firstName}
-                                                width={64}
-                                                height={64}
-                                                className="h-16 w-16 rounded-full object-cover"
-                                            />
-                                            <div>
-                                                <h3 className="text-xl font-semibold text-gray-900">
-                                                    {provider.firstName}{' '}
-                                                    {provider.lastName}
-                                                </h3>
-                                                <p className="text-gray-600">
-                                                    ผู้ให้บริการ
-                                                </p>
-                                                <p className="text-sm text-gray-500">
-                                                    บริการ:{' '}
-                                                    {booking.serviceName}
-                                                </p>
-                                            </div>
+                            {/* Service Type */}
+                            <div className="mb-6">
+                                <label className="mb-3 block text-sm font-medium text-gray-700">
+                                    ประเภทการจอง
+                                </label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setBookingData((prev) => ({
+                                                ...prev,
+                                                serviceType: 'hourly',
+                                            }))
+                                        }
+                                        className={`rounded-xl border-2 p-4 transition-all hover:cursor-pointer ${
+                                            bookingData.serviceType === 'hourly'
+                                                ? 'border-pink-500 bg-pink-50 text-pink-700'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <Clock className="mx-auto mb-2 h-6 w-6" />
+                                        <div className="font-medium">
+                                            รายชั่วโมง
                                         </div>
-                                        <span
-                                            className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(booking.status)}`}
+                                        <div className="text-sm text-gray-500">
+                                            ฿
+                                            {service.priceHour.toLocaleString()}
+                                            /ชั่วโมง
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setBookingData((prev) => ({
+                                                ...prev,
+                                                serviceType: 'daily',
+                                            }))
+                                        }
+                                        className={`rounded-xl border-2 p-4 transition-all hover:cursor-pointer ${
+                                            bookingData.serviceType === 'daily'
+                                                ? 'border-pink-500 bg-pink-50 text-pink-700'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <Calendar className="mx-auto mb-2 h-6 w-6" />
+                                        <div className="font-medium">
+                                            รายวัน
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            ฿{service.priceDay.toLocaleString()}
+                                            /วัน
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Date */}
+                            <div className="mb-6">
+                                <label
+                                    htmlFor="date"
+                                    className="mb-2 block text-sm font-medium text-gray-700"
+                                >
+                                    วันที่ *
+                                </label>
+                                <input
+                                    type="date"
+                                    id="date"
+                                    value={bookingData.date}
+                                    onChange={(e) =>
+                                        setBookingData((prev) => ({
+                                            ...prev,
+                                            date: e.target.value,
+                                        }))
+                                    }
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className={`w-full rounded-xl border px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-pink-500 ${
+                                        errors.date
+                                            ? 'border-red-300'
+                                            : 'border-gray-300'
+                                    }`}
+                                />
+                                {errors.date && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {errors.date}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Time */}
+                            <div className="mb-6 grid grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        htmlFor="startTime"
+                                        className="mb-2 block text-sm font-medium text-gray-700"
+                                    >
+                                        เวลาเริ่มต้น *
+                                    </label>
+                                    <input
+                                        type="time"
+                                        id="startTime"
+                                        value={bookingData.startTime}
+                                        onChange={(e) => {
+                                            const newStartTime = e.target.value
+                                            setBookingData((prev) => ({
+                                                ...prev,
+                                                startTime: newStartTime,
+                                            }))
+
+                                            // Calculate duration immediately when start time changes
+                                            if (
+                                                newStartTime &&
+                                                bookingData.endTime
+                                            ) {
+                                                const start = new Date(
+                                                    `2000-01-01 ${newStartTime}`
+                                                )
+                                                const end = new Date(
+                                                    `2000-01-01 ${bookingData.endTime}`
+                                                )
+
+                                                if (end > start) {
+                                                    const duration =
+                                                        (end.getTime() -
+                                                            start.getTime()) /
+                                                        (1000 * 60 * 60)
+                                                    setBookingData((prev) => ({
+                                                        ...prev,
+                                                        duration,
+                                                    }))
+                                                }
+                                            }
+                                        }}
+                                        className={`w-full rounded-xl border px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-pink-500 ${
+                                            errors.startTime
+                                                ? 'border-red-300'
+                                                : 'border-gray-300'
+                                        }`}
+                                    />
+                                    {errors.startTime && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {errors.startTime}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {bookingData.serviceType === 'hourly' && (
+                                    <div>
+                                        <label
+                                            htmlFor="endTime"
+                                            className="mb-2 block text-sm font-medium text-gray-700"
                                         >
-                                            {getStatusText(booking.status)}
+                                            เวลาสิ้นสุด *
+                                        </label>
+                                        <input
+                                            type="time"
+                                            id="endTime"
+                                            value={bookingData.endTime}
+                                            onChange={(e) => {
+                                                const newEndTime =
+                                                    e.target.value
+                                                setBookingData((prev) => ({
+                                                    ...prev,
+                                                    endTime: newEndTime,
+                                                }))
+
+                                                // Calculate duration immediately when end time changes
+                                                if (
+                                                    bookingData.startTime &&
+                                                    newEndTime
+                                                ) {
+                                                    const start = new Date(
+                                                        `2000-01-01 ${bookingData.startTime}`
+                                                    )
+                                                    const end = new Date(
+                                                        `2000-01-01 ${newEndTime}`
+                                                    )
+
+                                                    if (end > start) {
+                                                        const duration =
+                                                            (end.getTime() -
+                                                                start.getTime()) /
+                                                            (1000 * 60 * 60)
+                                                        setBookingData(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                duration,
+                                                            })
+                                                        )
+                                                    }
+                                                }
+                                            }}
+                                            className={`w-full rounded-xl border px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-pink-500 ${
+                                                errors.endTime
+                                                    ? 'border-red-300'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        />
+                                        {errors.endTime && (
+                                            <p className="mt-1 text-sm text-red-600">
+                                                {errors.endTime}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Special Requests */}
+                            <div className="mb-6">
+                                <label
+                                    htmlFor="specialRequests"
+                                    className="mb-2 block text-sm font-medium text-gray-700"
+                                >
+                                    ฝากถึงผู้ให้บริการ
+                                </label>
+                                <textarea
+                                    id="specialRequests"
+                                    rows={4}
+                                    value={bookingData.specialRequests}
+                                    onChange={(e) =>
+                                        setBookingData((prev) => ({
+                                            ...prev,
+                                            specialRequests: e.target.value,
+                                        }))
+                                    }
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-pink-500"
+                                    placeholder="เช่น สถานที่ที่ต้องการไป, กิจกรรมที่ต้องการทำ, หรือข้อกำหนดพิเศษอื่นๆ"
+                                />
+                            </div>
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 py-3 font-semibold text-white transition-all duration-200 hover:cursor-pointer hover:from-pink-600 hover:to-rose-600 disabled:opacity-50"
+                            >
+                                {isLoading
+                                    ? 'กำลังดำเนินการ...'
+                                    : 'ดำเนินการจอง'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Booking Summary */}
+                    <div className="space-y-6">
+                        {/* Provider Info */}
+                        <div className="rounded-2xl bg-white p-6 shadow-sm">
+                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                                ผู้ให้บริการ
+                            </h3>
+                            <div className="flex items-center space-x-4">
+                                <Image
+                                    src={provider.img || '/img/p1.jpg'}
+                                    alt={provider.firstName}
+                                    width={64}
+                                    height={64}
+                                    className="h-16 w-16 rounded-full object-cover"
+                                />
+                                <div>
+                                    <div className="font-medium text-gray-900">
+                                        {provider.firstName} {provider.lastName}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        {new Date().getFullYear() -
+                                            new Date(
+                                                provider.birthdate
+                                            ).getFullYear()}{' '}
+                                        ปี
+                                    </div>
+                                    <div className="flex items-center space-x-1 text-yellow-500">
+                                        <span className="text-sm">
+                                            ⭐ {service.rating}
+                                        </span>
+                                        <span className="text-sm text-gray-500">
+                                            ({service.reviewCount} รีวิว)
                                         </span>
                                     </div>
-
-                                    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                                        <div className="flex items-center space-x-2 text-gray-600">
-                                            <Calendar className="h-5 w-5" />
-                                            <span>
-                                                {new Date(
-                                                    booking.date
-                                                ).toLocaleDateString('th-TH')}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-gray-600">
-                                            <Clock className="h-5 w-5" />
-                                            <span>
-                                                {booking.startTime} -{' '}
-                                                {booking.endTime}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-gray-600">
-                                            <User className="h-5 w-5" />
-                                            <span>
-                                                {booking.totalHours} ชั่วโมง
-                                            </span>
-                                        </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Price Summary */}
+                        <div className="rounded-2xl bg-white p-6 shadow-sm">
+                            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                                สรุปค่าใช้จ่าย
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">
+                                        {bookingData.serviceType === 'daily'
+                                            ? 'ค่าบริการรายวัน'
+                                            : `ค่าบริการ ${bookingData.duration} ชั่วโมง`}
+                                    </span>
+                                    <span className="font-medium">
+                                        ฿{calculateTotal().toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="border-t pt-3">
+                                    <div className="flex justify-between text-lg font-semibold">
+                                        <span>รวมทั้งหมด</span>
+                                        <span>
+                                            ฿{calculateTotal().toLocaleString()}
+                                        </span>
                                     </div>
-
-                                    {booking.specialRequests && (
-                                        <div className="mb-4 rounded-lg bg-gray-50 p-3">
-                                            <h4 className="mb-1 font-medium text-gray-900">
-                                                คำขอพิเศษ:
-                                            </h4>
-                                            <p className="text-sm text-gray-600">
-                                                {booking.specialRequests}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-lg font-semibold text-gray-900">
+                                    <div className="mt-1 flex justify-between text-sm text-gray-600">
+                                        <span>มัดจำ (50%)</span>
+                                        <span>
                                             ฿
-                                            {booking.totalAmount.toLocaleString()}
-                                            <span className="ml-2 text-sm font-normal text-gray-500">
-                                                (ชำระแล้ว 100%)
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center space-x-3">
-                                            <button
-                                                onClick={() =>
-                                                    handleSendMessage(
-                                                        provider.id
-                                                    )
-                                                }
-                                                className="flex items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
-                                            >
-                                                <MessageCircle className="h-4 w-4" />
-                                                <span>ส่งข้อความ</span>
-                                            </button>
-
-                                            {booking.status === 'confirmed' && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleCancelBooking(
-                                                            booking.id
-                                                        )
-                                                    }
-                                                    className="rounded-lg border border-red-300 px-4 py-2 text-red-600 transition-colors hover:bg-red-50"
-                                                >
-                                                    ยกเลิก
-                                                </button>
-                                            )}
-
-                                            {booking.status === 'completed' && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleReviewBooking(
-                                                            booking.id
-                                                        )
-                                                    }
-                                                    className="flex items-center space-x-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2 text-white transition-all hover:from-pink-600 hover:to-rose-600"
-                                                >
-                                                    <Star className="h-4 w-4" />
-                                                    <span>ให้รีวิว</span>
-                                                </button>
-                                            )}
-                                        </div>
+                                            {(
+                                                calculateDeposit() * 0.5
+                                            ).toLocaleString()}
+                                        </span>
                                     </div>
                                 </div>
-                            )
-                        })}
+                            </div>
+                        </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     )
 }
-
-export default Bookings

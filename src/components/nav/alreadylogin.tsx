@@ -3,15 +3,20 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { ChevronDown, User, Settings, LogOut } from 'lucide-react'
+import {
+    ChevronDown,
+    User,
+    Settings,
+    LogOut,
+    Calendar,
+    BarChart3,
+} from 'lucide-react'
 
 export default function Alreadylogin() {
     const [messageCnt] = useState(4)
-    const [notifyCnt] = useState(10)
     const [showDropdown, setShowDropdown] = useState(false)
     const { user, logout, isProvider } = useAuthContext()
 
-    const notifyDisplay = notifyCnt > 9 ? '9+' : notifyCnt
     const messageCntDisplay = messageCnt > 9 ? '9+' : messageCnt
 
     return (
@@ -30,7 +35,7 @@ export default function Alreadylogin() {
                 )}
             </button>
 
-            <button className="relative cursor-pointer transition-all duration-300 hover:scale-105">
+            {/* <button className="relative cursor-pointer transition-all duration-300 hover:scale-105">
                 <Image
                     src="/img/notify.svg"
                     alt="notice"
@@ -42,7 +47,7 @@ export default function Alreadylogin() {
                         {notifyDisplay}
                     </div>
                 )}
-            </button>
+            </button> */}
 
             <div className="relative">
                 <button
@@ -75,6 +80,30 @@ export default function Alreadylogin() {
                         >
                             <User className="h-4 w-4" />
                             โปรไฟล์
+                        </Link>
+
+                        <Link
+                            href={
+                                isProvider
+                                    ? '/dashboard/provider'
+                                    : '/dashboard/customer'
+                            }
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setShowDropdown(false)}
+                        >
+                            <BarChart3 className="h-4 w-4" />
+                            แดชบอร์ด
+                        </Link>
+
+                        <Link
+                            href={
+                                isProvider ? '/booking/provider' : '/booking'
+                            }
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setShowDropdown(false)}
+                        >
+                            <Calendar className="h-4 w-4" />
+                            การจอง
                         </Link>
 
                         {isProvider && (
