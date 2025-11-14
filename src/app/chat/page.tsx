@@ -21,6 +21,7 @@ export default function ChatPage() {
         return chats.filter((p) => p.name.toLowerCase().includes(s))
     }, [chats, search])
     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         // Initialize sample data first
         initializeSampleData()
@@ -32,7 +33,7 @@ export default function ChatPage() {
         }
     }, [])
 
-    async function sendMessage() {
+    function sendMessage() {
         if (!selectedId || !messageText.trim()) return
         // persist the message to localStorage (mock POST)
         const newMsg = postMessage(selectedId, { text: messageText.trim(), fromMe: true })
