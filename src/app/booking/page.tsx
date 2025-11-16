@@ -227,14 +227,12 @@ const Bookings: React.FC = () => {
         rating: number
         comment: string
     }) => {
-        // 1. หาข้อมูล Booking ที่เกี่ยวข้องเพื่อดึง serviceName/serviceId
         const bookingToReview = bookings.find((b) => b.id === data.bookingId)
         if (!bookingToReview) {
             toast.error('ไม่พบรายการจองนี้', { duration: 3000 })
             return
         }
 
-        // 2. สร้าง Body ตามที่ API ต้องการ
         const requestBody = {
             serviceId: bookingToReview.serviceId,
             rating: data.rating,

@@ -7,7 +7,11 @@ import { X } from 'lucide-react'
 interface ReviewFormProps {
     isOpen: boolean
     onClose: () => void
-    onSubmit: (data: { rating: number; comment: string }) => void
+    onSubmit: (data: {
+        bookingId: string
+        rating: number
+        comment: string
+    }) => void
     bookingId: string
 }
 
@@ -15,6 +19,7 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({
     isOpen,
     onClose,
     onSubmit,
+    bookingId,
 }) => {
     const MIN_CHAR_LENGTH = 10
     const [rating, setRating] = useState<number>(0)
@@ -25,7 +30,7 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({
 
     const handleSubmit = () => {
         if (isValid) {
-            onSubmit({ rating, comment })
+            onSubmit({ bookingId, rating, comment })
             setRating(0)
             setComment('')
             onClose()
