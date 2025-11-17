@@ -2,13 +2,28 @@
 
 import Image from 'next/image'
 import { Kanit } from 'next/font/google'
-import { Heart, Search, ShieldCheck, Star } from 'lucide-react'
+import { Heart, Search, ShieldCheck, Star, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useAuthContext } from '@/contexts/AuthContext'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
 export default function HomePage() {
     const router = useRouter()
+    const { isAuthenticated, isProvider } = useAuthContext()
+    const handleProviderRegistrationClick = () => {
+        if (isAuthenticated) {
+            if (isProvider) {
+                router.push('/booking/provider')
+            } else {
+                router.push('/register')
+            }
+        } else {
+            router.push('/register')
+        }
+    }
+    const buttonText = isProvider ? 'จัดการการจอง' : 'สมัครเป็นผู้ให้บริการ'
+    const buttonIcon = isProvider ? <Calendar size={16} /> : <Heart size={16} />
 
     return (
         <main
@@ -43,13 +58,11 @@ export default function HomePage() {
                         </button>
                         <button
                             className="h-11 rounded-md border border-pink-600 bg-white px-4 text-sm font-semibold text-pink-600"
-                            onClick={() => {
-                                router.push('/register')
-                            }}
+                            onClick={handleProviderRegistrationClick}
                         >
                             <div className="flex cursor-pointer flex-row items-center justify-center gap-2 transition-all duration-300 hover:scale-105">
-                                <Heart size={16} />
-                                <span>สมัครเป็นผู้ให้บริการ</span>
+                                {buttonIcon}
+                                <span>{buttonText}</span>
                             </div>
                         </button>
                     </div>

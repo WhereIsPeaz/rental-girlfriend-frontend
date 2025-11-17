@@ -18,7 +18,8 @@ export default function Register() {
             if (user.type === 'provider') {
                 router.push('/servicemanage')
             } else {
-                router.push('/')
+                router.push('/register')
+                setActiveTab('provider')
             }
         }
     }, [isAuthenticated, user, router])
