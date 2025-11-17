@@ -69,7 +69,7 @@ export default function BookingPage() {
             }
         }
 
-        loadData()
+        void loadData()
     }, [id, router, isAuthenticated, user])
 
     const calculateTotal = () => {
@@ -482,7 +482,7 @@ export default function BookingPage() {
                             </h3>
                             <div className="flex items-center space-x-4">
                                 <Image
-                                    src={provider.img || '/img/p1.jpg'}
+                                    src={provider.img ?? '/img/p1.jpg'}
                                     alt={provider.firstName}
                                     width={64}
                                     height={64}

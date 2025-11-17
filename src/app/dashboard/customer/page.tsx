@@ -353,7 +353,7 @@ export default function CustomerDashboard() {
                                                 )}
                                             </p>
                                             <p className="text-sm text-gray-500">
-                                                {transaction.note ||
+                                                {transaction.note ??
                                                     transaction.description}
                                             </p>
                                             <p className="text-xs text-gray-400">
