@@ -1,5 +1,5 @@
 // Type definitions for the application
-import { z } from 'zod';
+import { z } from 'zod'
 
 // User types
 export interface User {
@@ -169,7 +169,7 @@ export const UserSchema = z.object({
     verified: z.boolean(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
-});
+})
 
 export const ServiceSchema = z.object({
     id: z.string(),
@@ -185,7 +185,7 @@ export const ServiceSchema = z.object({
     bookingCount: z.number(),
     active: z.boolean(),
     createdAt: z.string(),
-});
+})
 
 export const ReviewSchema = z.object({
     id: z.string(),
@@ -195,7 +195,7 @@ export const ReviewSchema = z.object({
     comment: z.string(),
     createdAt: z.string(),
     bookingId: z.string().optional(),
-});
+})
 
 export const BookingSchema = z.object({
     id: z.string(),
@@ -210,13 +210,18 @@ export const BookingSchema = z.object({
     totalAmount: z.number(),
     depositAmount: z.number(),
     status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']),
-    paymentStatus: z.enum(['pending', 'paid', 'refunded', 'partially_refunded']),
+    paymentStatus: z.enum([
+        'pending',
+        'paid',
+        'refunded',
+        'partially_refunded',
+    ]),
     specialRequests: z.string().optional(),
     cancelledBy: z.enum(['customer', 'provider']).optional(),
     refundAmount: z.number().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
-});
+})
 
 export const PaymentSchema = z.object({
     id: z.string(),
@@ -224,15 +229,26 @@ export const PaymentSchema = z.object({
     customerId: z.string(),
     providerId: z.string(),
     amount: z.number(),
-    paymentMethod: z.enum(['credit_card', 'promptpay', 'bank_transfer', 'wallet']),
-    status: z.enum(['pending', 'completed', 'failed', 'refunded', 'partially_refunded']),
+    paymentMethod: z.enum([
+        'credit_card',
+        'promptpay',
+        'bank_transfer',
+        'wallet',
+    ]),
+    status: z.enum([
+        'pending',
+        'completed',
+        'failed',
+        'refunded',
+        'partially_refunded',
+    ]),
     transactionId: z.string().nullish(),
     refundAmount: z.number().nullish(),
     refundReason: z.string().nullish(),
     createdAt: z.string(),
     completedAt: z.string().nullish(),
     refundedAt: z.string().nullish(),
-});
+})
 
 export const TransactionSchema = z.object({
     id: z.string(),
@@ -246,7 +262,7 @@ export const TransactionSchema = z.object({
     description: z.string().optional(),
     createdAt: z.string(),
     updatedAt: z.string().optional(),
-});
+})
 
 export const WithdrawalSchema = z.object({
     id: z.string(),
@@ -257,9 +273,9 @@ export const WithdrawalSchema = z.object({
     accountName: z.string(),
     status: z.enum(['pending', 'completed', 'failed']),
     requestedAt: z.string(),
-    completedAt: z.string().optional(),
-    failureReason: z.string().optional(),
-});
+    completedAt: z.string().nullish(),
+    failureReason: z.string().nullish(),
+})
 
 export const UserBalanceSchema = z.object({
     userId: z.string(),
@@ -268,7 +284,7 @@ export const UserBalanceSchema = z.object({
     totalEarnings: z.number(),
     totalSpent: z.number(),
     lastUpdated: z.string(),
-});
+})
 
 // API Response schemas
 export const ApiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
@@ -276,7 +292,7 @@ export const ApiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
         success: z.boolean(),
         data: dataSchema.optional(),
         message: z.string().optional(),
-    });
+    })
 
 export const PaginatedResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
     z.object({
@@ -288,5 +304,4 @@ export const PaginatedResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
             total: z.number(),
         }),
         message: z.string().optional(),
-    });
-
+    })
