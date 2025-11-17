@@ -1,131 +1,159 @@
+'use client'
+import { Suspense, useEffect } from 'react'
 import { Kanit } from 'next/font/google'
-import Card from '@/components/Card'
-import { ChevronDown, Search } from 'lucide-react'
-import SearchBox from '@/components/SearchBox'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ServicesProvider, useServices } from '@/contexts/ServicesContext'
+import ServicesHeader from '@/components/services/ServicesHeader'
+import SearchSection from '@/components/services/SearchSection'
+import FilterControls from '@/components/services/FilterControls'
+import ServiceGrid from '@/components/services/ServiceGrid'
+import EmptyState from '@/components/services/EmptyState'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
-export default function ServicePage() {
+function ServicePageContent() {
+    const router = useRouter()
+    const {
+        allServices,
+        allProviders,
+        filteredServices,
+        filters,
+        sortBy,
+        loading,
+        filterLoading,
+        loadData,
+        applyFiltersAndSort,
+        updateFilters,
+        updateSort,
+        clearFilters,
+    } = useServices()
+
+    // Load initial data
+    useEffect(() => {
+        void loadData()
+    }, [loadData])
+
+    // Apply filters and sort when data or filters change
+    useEffect(() => {
+        if (allServices.length > 0 && allProviders.length > 0) {
+            void applyFiltersAndSort()
+        }
+    }, [allServices, allProviders, filters, sortBy, applyFiltersAndSort])
+
+    // Update URL parameters
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            const params = new URLSearchParams()
+
+            if (filters.query) params.set('q', filters.query)
+            if (filters.activity) params.set('activity', filters.activity)
+            if (filters.gender) params.set('gender', filters.gender)
+            if (filters.priceMin) params.set('priceMin', filters.priceMin)
+            if (filters.priceMax) params.set('priceMax', filters.priceMax)
+            if (filters.minRating) params.set('minRating', filters.minRating)
+            if (sortBy !== 'rating') params.set('sort', sortBy)
+
+            const queryString = params.toString()
+            const newURL = queryString
+                ? `/services?${queryString}`
+                : '/services'
+
+            router.replace(newURL, { scroll: false })
+        }, 300)
+
+        return () => clearTimeout(timeoutId)
+    }, [filters, sortBy, router])
+
     return (
-        <main className={`${kanit.className} mt-16 bg-[#F4F6F8]`}>
+        <main className={`${kanit.className} bg-[#F4F6F8]`}>
             <div className="mx-auto w-full md:max-w-290">
-                <div className="w-full pt-8">
-                    {/* หัวข้อใหญ่ */}
-                    <h1 className="text-[33px] font-normal text-black">
-                        ค้นหาแฟนเช่า
-                    </h1>
-                    <p className="text-[13px] font-normal text-[#6B7280]">
-                        พบกับผู้ให้บริการมากกว่า 1,200 คน ที่รอให้บริการคุณ
-                    </p>
-                </div>
+                <ServicesHeader />
 
-                {/* กล่อง “การจองล่าสุด” + แถบค้นหา */}
-                <section className="mt-6 rounded-[12px] border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="mb-4 text-[19px] font-normal text-[#212B36]">
-                        การจองล่าสุด
-                    </div>
-                    <SearchBox />
-                </section>
+                <SearchSection
+                    filters={filters}
+                    onFilterChange={updateFilters}
+                    onClearFilters={clearFilters}
+                />
 
-                {/* แถบจำนวนผลลัพธ์ + ปุ่มเรียงลำดับ */}
-                <div className="mt-6 flex items-center justify-between">
-                    <p className="text-[13px] font-normal text-[#6B7280]">
-                        พบ 7 ผู้ให้บริการ
-                    </p>
+                <FilterControls
+                    resultCount={filteredServices.length}
+                    loading={loading}
+                    filterLoading={filterLoading}
+                    sortBy={sortBy}
+                    onSortChange={updateSort}
+                />
 
-                    <button
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
-                        type="button"
-                    >
-                        เรียงโดย
-                        <ChevronDown className="h-4 w-4" />
-                    </button>
-                </div>
                 <div>
-                    <div className="flex content-center justify-between">
-                        <Card
-                            Name="สมหญิง ว้อนชาย"
-                            Age={25}
-                            Rating={4.8}
-                            Location="กรุงเทพมหานคร"
-                            Description="เจนค่ะ เจนค่ะ หนูชื่อเจนมากับบูมแล้วก็มากับโบว์ โบว์ค่ะ โบว์ค่ะ หนูชื่อโบว์มากับบูม แล้วก็มากับเจน นุ่มค่ะ นุ่มค่ะ..."
-                            Type="แนะนำ"
-                            PriceHr={500}
-                            PriceD={3000}
-                            Review="จองแล้ว 145 ครั้ง"
-                            ReviewCount={127}
-                            imgSrc="/img/provider1.png"
+                    {filteredServices.length === 0 &&
+                    !loading &&
+                    !filterLoading ? (
+                        <EmptyState
+                            filters={filters}
+                            onClearFilters={clearFilters}
                         />
-                        <Card
-                            Name="สมหญิง ว้อนชาย"
-                            Age={25}
-                            Rating={4.8}
-                            Location="กรุงเทพมหานคร"
-                            Description="เจนค่ะ เจนค่ะ หนูชื่อเจนมากับบูมแล้วก็มากับโบว์ โบว์ค่ะ โบว์ค่ะ หนูชื่อโบว์มากับบูม แล้วก็มากับเจน นุ่มค่ะ นุ่มค่ะ..."
-                            Type="แนะนำ"
-                            PriceHr={500}
-                            PriceD={3000}
-                            Review="จองแล้ว 145 ครั้ง"
-                            ReviewCount={127}
-                            imgSrc="/img/provider2.png"
+                    ) : (
+                        <ServiceGrid
+                            services={filteredServices}
+                            providers={allProviders}
+                            loading={loading}
+                            filterLoading={filterLoading}
                         />
-                        <Card
-                            Name="สมหญิง ว้อนชาย"
-                            Age={25}
-                            Rating={4.8}
-                            Location="กรุงเทพมหานคร"
-                            Description="เจนค่ะ เจนค่ะ หนูชื่อเจนมากับบูมแล้วก็มากับโบว์ โบว์ค่ะ โบว์ค่ะ หนูชื่อโบว์มากับบูม แล้วก็มากับเจน นุ่มค่ะ นุ่มค่ะ..."
-                            Type="แนะนำ"
-                            PriceHr={500}
-                            PriceD={3000}
-                            Review="จองแล้ว 145 ครั้ง"
-                            ReviewCount={127}
-                            imgSrc="/img/provider3.png"
-                        />
-                    </div>
-                    <div className="flex content-center justify-between pb-5">
-                        <Card
-                            Name="สมหญิง ว้อนชาย"
-                            Age={25}
-                            Rating={4.8}
-                            Location="กรุงเทพมหานคร"
-                            Description="เจนค่ะ เจนค่ะ หนูชื่อเจนมากับบูมแล้วก็มากับโบว์ โบว์ค่ะ โบว์ค่ะ หนูชื่อโบว์มากับบูม แล้วก็มากับเจน นุ่มค่ะ นุ่มค่ะ..."
-                            Type="แนะนำ"
-                            PriceHr={500}
-                            PriceD={3000}
-                            Review="จองแล้ว 145 ครั้ง"
-                            ReviewCount={127}
-                            imgSrc="/img/provider4.png"
-                        />
-                        <Card
-                            Name="สมหญิง ว้อนชาย"
-                            Age={25}
-                            Rating={4.8}
-                            Location="กรุงเทพมหานคร"
-                            Description="เจนค่ะ เจนค่ะ หนูชื่อเจนมากับบูมแล้วก็มากับโบว์ โบว์ค่ะ โบว์ค่ะ หนูชื่อโบว์มากับบูม แล้วก็มากับเจน นุ่มค่ะ นุ่มค่ะ..."
-                            Type="แนะนำ"
-                            PriceHr={500}
-                            PriceD={3000}
-                            Review="จองแล้ว 145 ครั้ง"
-                            ReviewCount={127}
-                            imgSrc="/img/provider5.png"
-                        />
-                        <Card
-                            Name="สมหญิง ว้อนชาย"
-                            Age={25}
-                            Rating={4.8}
-                            Location="กรุงเทพมหานคร"
-                            Description="เจนค่ะ เจนค่ะ หนูชื่อเจนมากับบูมแล้วก็มากับโบว์ โบว์ค่ะ โบว์ค่ะ หนูชื่อโบว์มากับบูม แล้วก็มากับเจน นุ่มค่ะ นุ่มค่ะ..."
-                            Type="แนะนำ"
-                            PriceHr={500}
-                            PriceD={3000}
-                            Review="จองแล้ว 145 ครั้ง"
-                            ReviewCount={127}
-                            imgSrc="/img/provider6.png"
-                        />
-                    </div>
+                    )}
                 </div>
             </div>
         </main>
+    )
+}
+
+function ServicePageWithParams() {
+    const searchParams = useSearchParams()
+
+    // Extract initial filters from URL
+    const initialFilters = {
+        query: searchParams.get('q') ?? '',
+        activity: searchParams.get('activity') ?? '',
+        gender: searchParams.get('gender') ?? '',
+        priceMin: searchParams.get('priceMin') ?? '',
+        priceMax: searchParams.get('priceMax') ?? '',
+        minRating: searchParams.get('minRating') ?? '',
+    }
+
+    const initialSort =
+        (searchParams.get('sort') as
+            | 'rating'
+            | 'price-low'
+            | 'price-high'
+            | 'popular'
+            | 'newest') ?? 'rating'
+
+    return (
+        <ServicesProvider
+            initialFilters={initialFilters}
+            initialSort={initialSort}
+        >
+            <ServicePageContent />
+        </ServicesProvider>
+    )
+}
+
+export default function ServicePage() {
+    return (
+        <Suspense
+            fallback={
+                <main className={`${kanit.className} bg-[#F4F6F8]`}>
+                    <div className="mx-auto w-full md:max-w-290">
+                        <ServicesHeader />
+                        <div className="flex items-center justify-center py-12">
+                            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-pink-500"></div>
+                            <div className="ml-3 text-gray-500">
+                                กำลังโหลดข้อมูล...
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            }
+        >
+            <ServicePageWithParams />
+        </Suspense>
     )
 }

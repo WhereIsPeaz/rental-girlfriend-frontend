@@ -1,11 +1,18 @@
-type AccountFieldsProps = {
-    formData: any
+interface FormData {
+    firstName: string
+    lastName: string
+    birthdate: string
+}
+
+type PersonalDetailsProps = {
+    formData: FormData
     handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    getFieldError?: (fieldName: string) => string | undefined
 }
 export default function PersonalDetails({
     formData,
     handleChange,
-}: AccountFieldsProps) {
+}: PersonalDetailsProps) {
     return (
         <div>
             <div className="flex justify-center gap-4">

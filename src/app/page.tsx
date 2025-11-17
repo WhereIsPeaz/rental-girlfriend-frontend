@@ -2,17 +2,32 @@
 
 import Image from 'next/image'
 import { Kanit } from 'next/font/google'
-import { Heart, Search, ShieldCheck, Star } from 'lucide-react'
+import { Heart, Search, ShieldCheck, Star, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useAuthContext } from '@/contexts/AuthContext'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
 export default function HomePage() {
     const router = useRouter()
+    const { isAuthenticated, isProvider } = useAuthContext()
+    const handleProviderRegistrationClick = () => {
+        if (isAuthenticated) {
+            if (isProvider) {
+                router.push('/booking/provider')
+            } else {
+                router.push('/register')
+            }
+        } else {
+            router.push('/register')
+        }
+    }
+    const buttonText = isProvider ? 'จัดการการจอง' : 'สมัครเป็นผู้ให้บริการ'
+    const buttonIcon = isProvider ? <Calendar size={16} /> : <Heart size={16} />
 
     return (
         <main
-            className={`${kanit.className} flex min-h-screen items-center justify-center bg-[#FEEDF633]`}
+            className={`${kanit.className} -mt-[64px] flex min-h-screen items-center justify-center bg-[#FEEDF633]`}
         >
             <div className="flex w-full max-w-[1200px] flex-col items-center justify-center gap-8 px-6 md:flex-row">
                 <section className="flex w-full flex-col gap-8 md:min-h-[392px] md:max-w-[464px]">
@@ -32,7 +47,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-3">
                         <button
                             className="h-11 rounded-md bg-gradient-to-r from-pink-600 to-rose-500 px-4 text-sm font-semibold text-white shadow"
-                            onClick={(e) => {
+                            onClick={() => {
                                 router.push('/services')
                             }}
                         >
@@ -41,10 +56,13 @@ export default function HomePage() {
                                 <span>เริ่มค้นหาเลย</span>
                             </div>
                         </button>
-                        <button className="h-11 rounded-md border border-pink-600 bg-white px-4 text-sm font-semibold text-pink-600">
+                        <button
+                            className="h-11 rounded-md border border-pink-600 bg-white px-4 text-sm font-semibold text-pink-600"
+                            onClick={handleProviderRegistrationClick}
+                        >
                             <div className="flex cursor-pointer flex-row items-center justify-center gap-2 transition-all duration-300 hover:scale-105">
-                                <Heart size={16} />
-                                <span>สมัครเป็นผู้ให้บริการ</span>
+                                {buttonIcon}
+                                <span>{buttonText}</span>
                             </div>
                         </button>
                     </div>

@@ -1,12 +1,17 @@
+'use client'
+
 import Image from 'next/image'
 import { MapPin, Star } from 'lucide-react'
 import { Kanit } from 'next/font/google'
+import { useRouter } from 'next/navigation'
 import ActivityBox from './ActivityBox'
-import PrimaryButton from './ฺPrimaryButton'
+import PrimaryButton from './PrimaryButton'
+import { isBase64Image } from '@/lib/imageUtils'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
 type Props = {
+    id: string | number
     Name: string
     Age: number
     Rating: number
@@ -18,9 +23,13 @@ type Props = {
     Review: string
     ReviewCount: number
     imgSrc: string
+    buttonTitle: string
+    Categories?: string[]
+    customButton?: React.ReactNode
 }
 
 export default function Card({
+    id,
     Name,
     Age,
     Rating,
@@ -32,23 +41,40 @@ export default function Card({
     Review,
     ReviewCount,
     imgSrc,
+    buttonTitle,
+    Categories = [],
+    customButton,
 }: Props) {
+    const router = useRouter()
     const priceHr = PriceHr.toLocaleString('th-TH')
     const priceD = PriceD.toLocaleString('th-TH')
 
+    const handleViewProfile = () => {
+        router.push(`/services/${id}`)
+    }
+
     return (
         <div
-            className={`${kanit.className} m-4 h-121 w-full overflow-hidden rounded-[12px] border border-gray-100 bg-white shadow-sm`}
+            className={`${kanit.className} m-4 h-121 w-full max-w-90 overflow-hidden rounded-[12px] border border-gray-100 bg-white shadow-sm`}
         >
             <div className="relative h-60 w-full">
-                <Image
-                    src={imgSrc}
-                    alt={Name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 480px"
-                    className="object-cover object-[50%_35%]"
-                    priority
-                />
+                {isBase64Image(imgSrc) ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                        src={imgSrc}
+                        alt={Name}
+                        className="h-full w-full object-cover object-[50%_35%]"
+                    />
+                ) : (
+                    <Image
+                        src={imgSrc}
+                        alt={Name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 480px"
+                        className="object-cover object-[50%_35%]"
+                        priority
+                    />
+                )}
                 {Type && (
                     <span className="absolute bottom-4 left-4 rounded-full bg-[#EAB308] px-3 py-1 text-xs font-semibold text-white shadow">
                         {Type}
@@ -69,7 +95,7 @@ export default function Card({
                 </div>
 
                 {/* อายุ + โลเคชัน */}
-                <div className="mt-2 mt-3 mb-3 flex flex-wrap items-center gap-4 text-[11px] font-normal text-gray-500">
+                <div className="mt-3 mb-3 flex flex-wrap items-center gap-4 text-[11px] font-normal text-gray-500">
                     <span>{Age} ปี</span>
                     <span className="flex items-center gap-1 text-[11px] font-normal">
                         <MapPin className="h-4 w-4" />
@@ -83,11 +109,7 @@ export default function Card({
                 </p>
 
                 {/* แท็กกิจกรรม */}
-                <ActivityBox
-                    title1="ดูหนัง"
-                    title2="ทานอาหาร"
-                    title3="เดินเล่น"
-                />
+                <ActivityBox activities={Categories} />
 
                 {/* ราคา + ปุ่มโปรไฟล์ */}
                 <div className="mt-3 mb-3 flex items-center justify-between">
@@ -102,7 +124,12 @@ export default function Card({
                             ฿ {priceD} / วัน
                         </div>
                     </div>
-                    <PrimaryButton title="ดูโปรไฟล์" />
+                    {customButton ?? (
+                        <PrimaryButton
+                            title={buttonTitle}
+                            onClick={handleViewProfile}
+                        />
+                    )}
                 </div>
 
                 <hr className="border-0 border-t border-t-[#E1E7F4]/60" />

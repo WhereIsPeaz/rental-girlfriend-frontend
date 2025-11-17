@@ -1,18 +1,72 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuthContext } from '@/contexts/AuthContext'
+
 export default function Home() {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     })
+    const [isLoading, setIsLoading] = useState(false)
+    const { login, isAuthenticated, user } = useAuthContext()
+    const router = useRouter()
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            if (user.type === 'provider') {
+                router.push('/servicemanage')
+            } else {
+                router.push('/')
+            }
+        }
+    }, [isAuthenticated, user, router])
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
         setFormData((prevData) => ({
             ...prevData,
             [name]: value,
         }))
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!formData.email || !formData.password) {
+            return
+        }
+
+        setIsLoading(true)
+        const result = await login(formData.email, formData.password)
+        setIsLoading(false)
+
+        if (result.success && result.user) {
+            // Redirect based on user type
+            const userType = result.user.type
+            if (userType === 'provider') {
+                router.push('/servicemanage')
+            } else {
+                router.push('/')
+            }
+        }
+    }
+
+    // ฟังก์ชันสำหรับ fill ข้อมูล mock accounts
+    const fillUserAccount = () => {
+        setFormData({
+            email: 'customer1@example.com',
+            password: '123456',
+        })
+    }
+
+    const fillProviderAccount = () => {
+        setFormData({
+            email: 'provider1@example.com',
+            password: '123456',
+        })
     }
     return (
         <div
@@ -39,6 +93,7 @@ export default function Home() {
                 ยินดีต้อนรับสู่แฟนเช่า
             </p>
             <form
+                onSubmit={handleSubmit}
                 style={{
                     borderRadius: '16px',
                     boxShadow: '1px 4px 16px rgba(0, 0, 0, 0.1)',
@@ -110,14 +165,17 @@ export default function Home() {
                 </div>
                 <button
                     type="submit"
+                    disabled={
+                        isLoading || !formData.email || !formData.password
+                    }
                     style={{
                         background:
                             'linear-gradient(133.15deg, #F24BA7 2.02%, #EF4444 98.99%)',
                         borderRadius: '6px',
                     }}
-                    className="mt-6 mb-6 w-full cursor-pointer px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-300 hover:scale-105 hover:bg-pink-600 focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:outline-none"
+                    className="mt-6 mb-6 w-full cursor-pointer px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-300 hover:scale-105 hover:bg-pink-600 focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
-                    เข้าสู่ระบบ
+                    {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                 </button>
             </form>
             <div className="!mt-3 text-center">
@@ -131,9 +189,9 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-[7px]">
                 <div className="flex items-center justify-center">
-                    <Link
-                        href="/user-account"
-                        className="mt-4 ml-[2px] flex h-[34px] w-[336px] items-center justify-center rounded-md border border-gray-200 bg-white p-4 text-base font-medium text-[#f6339a] transition-all hover:border-pink-300 hover:shadow-lg"
+                    <button
+                        onClick={fillUserAccount}
+                        className="mt-4 ml-[2px] flex h-[34px] w-[336px] cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white p-4 text-base font-medium text-[#f6339a] transition-all hover:border-pink-300 hover:shadow-lg"
                     >
                         <Image
                             src="/img/user.svg"
@@ -143,12 +201,12 @@ export default function Home() {
                             height={20}
                         />
                         <span className="text-[#f24472]">User Account</span>
-                    </Link>
+                    </button>
                 </div>
                 <div className="flex flex-col items-center justify-center">
-                    <Link
-                        href="/provider-account"
-                        className="flex h-[34px] w-[336px] items-center justify-center rounded-md border border-gray-200 bg-white p-4 text-base font-medium text-[#f6339a] transition-all hover:border-pink-300 hover:shadow-lg"
+                    <button
+                        onClick={fillProviderAccount}
+                        className="flex h-[34px] w-[336px] cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white p-4 text-base font-medium text-[#f6339a] transition-all hover:border-pink-300 hover:shadow-lg"
                     >
                         <Image
                             src="/img/handshake.svg"
@@ -158,12 +216,12 @@ export default function Home() {
                             height={20}
                         />
                         <span className="text-[#f24472]">Provider Account</span>
-                    </Link>
+                    </button>
                 </div>
                 <div className="flex items-center justify-center">
                     <Link
                         href="#"
-                        className="mb-[56px] ml-[2px] flex h-[34px] w-[336px] items-center justify-center rounded-md border border-gray-200 bg-white p-4 text-base font-medium text-[#f6339a] transition-all hover:border-pink-300 hover:shadow-lg"
+                        className="mb-[56px] ml-[2px] flex h-[34px] w-[336px] cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white p-4 text-base font-medium text-[#f6339a] transition-all hover:border-pink-300 hover:shadow-lg"
                     >
                         <Image
                             src="/img/protect.svg"
