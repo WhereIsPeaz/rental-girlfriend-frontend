@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { Camera, X, Upload, Check } from 'lucide-react'
 import Image from 'next/image'
-import { processImageFile, isBase64Image } from '@/lib/imageUtils'
+import {
+    processImageFile,
+    isBase64Image,
+    normalizeImagePath,
+} from '@/lib/imageUtils'
 
 interface User {
     img: string
@@ -102,7 +106,7 @@ export default function ChangeProfile({
                                     />
                                 ) : (
                                     <Image
-                                        src={user.img}
+                                        src={normalizeImagePath(user.img)}
                                         alt="รูปโปรไฟล์ปัจจุบัน"
                                         width={80}
                                         height={80}

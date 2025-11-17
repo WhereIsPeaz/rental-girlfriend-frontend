@@ -12,6 +12,7 @@ import ServiceModal from '@/components/ServiceModal'
 import Card from '@/components/Card'
 import EditButton from '@/components/EditButton'
 import toast from 'react-hot-toast'
+import { normalizeImagePath } from '@/lib/imageUtils'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
@@ -147,11 +148,11 @@ export default function ServiceMangePage() {
                                             PriceD={service.priceDay}
                                             Review={`จองแล้ว ${service.bookingCount} ครั้ง`}
                                             ReviewCount={service.reviewCount}
-                                            imgSrc={
+                                            imgSrc={normalizeImagePath(
                                                 service.images[0] ??
-                                                user?.img ??
-                                                '/img/provider1.png'
-                                            }
+                                                    user?.img ??
+                                                    '/img/provider1.png'
+                                            )}
                                             buttonTitle="แก้ไข"
                                             Categories={service.categories}
                                             customButton={

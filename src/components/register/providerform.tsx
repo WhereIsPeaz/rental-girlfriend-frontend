@@ -114,7 +114,7 @@ export default function ProviderForm() {
                 gender: formData.gender,
                 interestedGender: formData.interestedGender,
                 type: 'provider' as const,
-                img: '/img/p2.jpg', // default avatar for providers
+                // Don't send img field - will use empty string default from backend
             }
 
             const success = await register(userData)

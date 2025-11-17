@@ -112,7 +112,7 @@ export default function UserForm() {
                 gender: formData.gender,
                 interestedGender: formData.interestedGender,
                 type: 'customer' as const,
-                img: '/img/p2.jpg', // default avatar
+                // Don't send img field - will use empty string default from backend
             }
 
             const success = await register(userData)

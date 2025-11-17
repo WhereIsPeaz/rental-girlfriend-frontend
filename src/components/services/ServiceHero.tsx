@@ -4,6 +4,7 @@ import React from 'react'
 import Image from 'next/image'
 import { Clock, MapPin, Star } from 'lucide-react'
 import type { Service, User } from '@/lib/types'
+import { normalizeImagePath } from '@/lib/imageUtils'
 
 interface ServiceHeroProps {
     service: Service
@@ -18,7 +19,9 @@ export default function ServiceHero({ service, provider }: ServiceHeroProps) {
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <div className="relative h-64">
                 <Image
-                    src={service.images[0] ?? provider.img ?? '/img/p1.jpg'}
+                    src={normalizeImagePath(
+                        service.images[0] ?? provider.img ?? '/img/p1.jpg'
+                    )}
                     alt={provider.firstName}
                     fill
                     className="object-cover"

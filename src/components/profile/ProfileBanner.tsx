@@ -1,5 +1,6 @@
 import { Camera } from 'lucide-react'
 import Image from 'next/image'
+import { normalizeImagePath } from '@/lib/imageUtils'
 
 interface User {
     img: string
@@ -25,7 +26,7 @@ export default function ProfileBanner({
             <div className="flex h-20 w-65.25 items-end gap-3 pt-26">
                 <div className="relative h-20 w-20">
                     <Image
-                        src={user.img}
+                        src={normalizeImagePath(user.img)}
                         alt="profile"
                         width={80}
                         height={80}

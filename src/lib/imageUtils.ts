@@ -161,10 +161,47 @@ export const createPreviewUrl = (base64: string): string => {
 }
 
 /**
- * Check if a string is a valid base64 image
+ * Check if a string is a valid base64 image data URI
  */
-export const isBase64Image = (str: string): boolean => {
-    return str.startsWith('data:image/')
+export const isBase64Image = (str: string | undefined): boolean => {
+    if (!str || str.trim() === '') {
+        return false
+    }
+    return str.trim().startsWith('data:image/')
+}
+
+/**
+ * Normalize image path to ensure it starts with / or is an absolute URL
+ * Handles base64 data URIs, paths, and empty strings
+ */
+export const normalizeImagePath = (
+    imagePath: string | undefined,
+    fallback = '/img/p1.jpg'
+): string => {
+    // If undefined, null, or empty string, use fallback
+    if (!imagePath || imagePath.trim() === '') {
+        return fallback
+    }
+
+    const img = imagePath.trim()
+
+    // If it's a base64 data URI, return as is
+    if (img.startsWith('data:')) {
+        return img
+    }
+
+    // If it's an absolute URL, return as is
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+        return img
+    }
+
+    // If it starts with /, return as is
+    if (img.startsWith('/')) {
+        return img
+    }
+
+    // Otherwise, add leading slash (for relative paths)
+    return `/${img}`
 }
 
 /**

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { normalizeImagePath } from '@/lib/imageUtils'
 import {
     ChevronDown,
     User,
@@ -56,7 +57,7 @@ export default function Alreadylogin() {
                 >
                     <div className="size-8">
                         <Image
-                            src={user?.img ?? '/img/p1.jpg'}
+                            src={normalizeImagePath(user?.img)}
                             alt="smallprofile"
                             width={32}
                             height={32}
