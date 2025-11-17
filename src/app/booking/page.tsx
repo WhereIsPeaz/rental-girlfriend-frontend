@@ -233,7 +233,7 @@ const Bookings: React.FC = () => {
             toast.error('ไม่พบรายการจองนี้', { duration: 3000 })
             return
         }
-
+        const bookingToReview = bookings.find((b) => b.id === data.bookingId)
         const requestBody = {
             bookingId: data.bookingId,
             rating: data.rating,
@@ -268,7 +268,7 @@ const Bookings: React.FC = () => {
                 `รีวิว ${data.rating.toFixed(1).replace('.0', '')} ดาว ถูกส่งเรียบร้อยแล้ว!`,
                 { duration: 2000 }
             )
-            router.push('/summaryreview')
+            router.push(`/services/${bookingToReview?.serviceId}`)
         } catch (error) {
             toast.dismiss(processingToast)
             console.error('Error submitting review:', error)
