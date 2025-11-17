@@ -22,7 +22,7 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
             
             # Pull the latest code from deploy
-            git -C ${{ secrets.REAL_PROJECT}} pullorigin deploy
+            git -C ${{ secrets.REAL_PROJECT}} pull origin deploy
             
             # Rebuild ONLY the 'api' service image
             sudo docker compose build front
