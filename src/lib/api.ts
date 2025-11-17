@@ -7,106 +7,105 @@ import toast from 'react-hot-toast'
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: env.NEXT_PUBLIC_API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000, // 30 seconds
+    baseURL: env.NEXT_PUBLIC_API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    timeout: 30000, // 30 seconds
 })
 
-// Request interceptor to attach JWT token
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+    (config: InternalAxiosRequestConfig) => {
         const token = getToken()
-    if (token) {
+        if (token) {
             config.headers.Authorization = `Bearer ${token}`
-    }
+        }
         return config
-  },
-  (error) => {
+    },
+    (error) => {
         return Promise.reject(error)
-  }
+    }
 )
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
+    (response) => {
         return response
-  },
-  (error: AxiosError) => {
-    // Check if error toasts should be suppressed
-    const config = error.config as any
-    const suppressToast = config?.suppressErrorToast === true
+    },
+    (error: AxiosError) => {
+        // Check if error toasts should be suppressed
+        const config = error.config as any
+        const suppressToast = config?.suppressErrorToast === true
 
-    // Handle different error scenarios
-    if (error.response) {
+        // Handle different error scenarios
+        if (error.response) {
             const status = error.response.status
             const data = error.response.data as any
 
-      switch (status) {
-        case 401:
-          // Unauthorized - clear token and redirect to login
+            switch (status) {
+                case 401:
+                    // Unauthorized - clear token and redirect to login
                     removeToken()
-          if (typeof window !== 'undefined') {
+                    if (typeof window !== 'undefined') {
                         const currentPath = window.location.pathname
-            // Don't redirect if already on login/register pages
+                        // Don't redirect if already on login/register pages
                         if (
                             currentPath !== '/login' &&
                             currentPath !== '/register'
                         ) {
                             if (!suppressToast) {
-                            toast.error('กรุณาเข้าสู่ระบบอีกครั้ง')
+                                toast.error('กรุณาเข้าสู่ระบบอีกครั้ง')
                             }
                             window.location.href = '/login'
-            }
-          }
-                    break
-
-        case 403:
-          // Forbidden
-                    if (!suppressToast) {
-                    toast.error('คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้')
+                        }
                     }
                     break
 
-        case 404:
-          // Not found
+                case 403:
+                    // Forbidden
                     if (!suppressToast) {
-                    toast.error(data?.message || 'ไม่พบข้อมูลที่ต้องการ')
+                        toast.error('คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้')
                     }
                     break
 
-        case 500:
-          // Server error
+                case 404:
+                    // Not found
                     if (!suppressToast) {
-                    toast.error(
-                        'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง'
-                    )
+                        toast.error(data?.message || 'ไม่พบข้อมูลที่ต้องการ')
                     }
                     break
 
-        default:
-          // Other errors
-          if (data?.message && !suppressToast) {
+                case 500:
+                    // Server error
+                    if (!suppressToast) {
+                        toast.error(
+                            'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง'
+                        )
+                    }
+                    break
+
+                default:
+                    // Other errors
+                    if (data?.message && !suppressToast) {
                         toast.error(data.message)
-          }
-      }
-    } else if (error.request) {
-      // Network error - no response received
-            if (!suppressToast) {
-            toast.error(
-                'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
-            )
+                    }
             }
-    } else {
-      // Other errors
+        } else if (error.request) {
+            // Network error - no response received
             if (!suppressToast) {
-            toast.error('เกิดข้อผิดพลาดที่ไม่คาดคิด')
+                toast.error(
+                    'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
+                )
             }
-    }
+        } else {
+            // Other errors
+            if (!suppressToast) {
+                toast.error('เกิดข้อผิดพลาดที่ไม่คาดคิด')
+            }
+        }
 
         return Promise.reject(error)
-  }
+    }
 )
 
 export default api
