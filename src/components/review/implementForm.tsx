@@ -56,13 +56,13 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({
                     </button>
                 </div>
 
-                <div className="mb-6 space-y-2">
+                <div className="space-y-2">
                     <label className="text-base font-medium text-slate-700">
                         ให้คะแนนด้วยดาว{' '}
                         <span className="text-pink-500">*</span>{' '}
                     </label>
 
-                    <div className="flex items-center gap-2">
+                    <div className="mt-3 mb-3 flex items-center gap-2">
                         {[1, 2, 3, 4, 5].map((index) => (
                             <div
                                 key={index}
@@ -93,10 +93,6 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({
                             </p>
                         )}
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                        คลิกที่ครึ่งซ้ายของดาวเพื่อให้คะแนนครึ่งดาว
-                        คลิกที่ครึ่งขวาเพื่อให้คะแนนเต็มดาว
-                    </p>
                 </div>
 
                 <div className="mb-2 space-y-2">
