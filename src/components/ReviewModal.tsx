@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Star } from 'lucide-react'
 import Modal from './shared/Modal'
 import toast from 'react-hot-toast'
+import * as reviewsApi from '@/lib/api/reviews'
 
 interface ReviewModalProps {
     open: boolean
@@ -78,15 +79,9 @@ export default function ReviewModal({
         setIsSubmitting(true)
 
         try {
-            // Simulate API delay
-            await new Promise((resolve) => setTimeout(resolve, 800))
-
-            // Import addReview dynamically to avoid circular dependencies
-            const { addReview } = await import('@/lib/localStorage')
-
-            addReview({
+            // Create review via API
+            await reviewsApi.createReview({
                 serviceId,
-                customerId,
                 rating,
                 comment: comment.trim(),
                 bookingId,
@@ -110,7 +105,11 @@ export default function ReviewModal({
             onClose()
         } catch (error) {
             console.error('Error submitting review:', error)
-            toast.error('เกิดข้อผิดพลาดในการส่งรีวิว กรุณาลองใหม่อีกครั้ง')
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'เกิดข้อผิดพลาดในการส่งรีวิว กรุณาลองใหม่อีกครั้ง'
+            toast.error(errorMessage)
         } finally {
             setIsSubmitting(false)
         }
