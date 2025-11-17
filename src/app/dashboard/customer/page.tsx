@@ -14,15 +14,10 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthContext } from '@/contexts/AuthContext'
-import {
-    getUserBalance,
-    getTransactionHistory,
-    processWithdrawal,
-    topUpBalance,
-    initializeSampleData,
-    type Transaction,
-    type UserBalance,
-} from '@/lib/localStorage'
+import * as usersApi from '@/lib/api/users'
+import * as transactionsApi from '@/lib/api/transactions'
+import * as withdrawalsApi from '@/lib/api/withdrawals'
+import type { Transaction, UserBalance } from '@/lib/types'
 
 export default function CustomerDashboard() {
     const { user, isAuthenticated } = useAuthContext()
@@ -56,16 +51,13 @@ export default function CustomerDashboard() {
         setLoading(true)
 
         try {
-            // Simulate API delay for data loading
-            await new Promise((resolve) => setTimeout(resolve, 800))
+            const [userBalance, transactionsList] = await Promise.all([
+                usersApi.getUserBalance(user.id),
+                transactionsApi.listTransactions({ customerId: user.id }),
+            ])
 
-            const userBalance = getUserBalance(user.id)
             setBalance(userBalance)
-
-            const transactionHistory = getTransactionHistory(user.id, {
-                limit: 50,
-            })
-            setTransactions(transactionHistory)
+            setTransactions(transactionsList.slice(0, 50))
         } catch {
             toast.error('ไม่สามารถโหลดข้อมูลได้')
         } finally {
@@ -74,8 +66,6 @@ export default function CustomerDashboard() {
     }, [user])
 
     useEffect(() => {
-        initializeSampleData()
-
         if (!isAuthenticated) {
             router.push('/login')
             return
@@ -120,16 +110,13 @@ export default function CustomerDashboard() {
         })
 
         try {
-            // Simulate API delay for withdrawal processing
-            await new Promise((resolve) => setTimeout(resolve, 2500))
-
-            processWithdrawal(
-                user.id,
+            await withdrawalsApi.createWithdrawal({
+                userId: user.id,
                 amount,
-                withdrawalForm.bankName,
-                withdrawalForm.accountNumber,
-                withdrawalForm.accountName
-            )
+                bankName: withdrawalForm.bankName,
+                accountNumber: withdrawalForm.accountNumber,
+                accountName: withdrawalForm.accountName,
+            })
 
             toast.dismiss(processingToast)
             toast.success('ถอนเงินสำเร็จ!')
@@ -168,10 +155,15 @@ export default function CustomerDashboard() {
         })
 
         try {
-            // Simulate API delay for top-up processing
-            await new Promise((resolve) => setTimeout(resolve, 1800))
-
-            topUpBalance(user.id, amount)
+            await transactionsApi.createTransaction({
+                customerId: user.id,
+                amount,
+                currency: 'THB',
+                method: 'topup',
+                type: 'topup',
+                status: 'completed',
+                note: 'เติมเงินเข้าบัญชี',
+            })
 
             toast.dismiss(processingToast)
             toast.success('เติมเงินสำเร็จ!')

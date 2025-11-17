@@ -6,17 +6,12 @@ import Image from 'next/image'
 import { CreditCard, CheckCircle, ArrowLeft, Wallet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthContext } from '@/contexts/AuthContext'
-import {
-    getServices,
-    getUsers,
-    createBookingAfterPayment,
-    getUserBalance,
-    payWithWallet,
-    initializeSampleData,
-    type Service,
-    type User,
-    type UserBalance,
-} from '@/lib/localStorage'
+import * as servicesApi from '@/lib/api/services'
+import * as usersApi from '@/lib/api/users'
+import * as bookingsApi from '@/lib/api/bookings'
+import * as paymentsApi from '@/lib/api/payments'
+import * as transactionsApi from '@/lib/api/transactions'
+import type { Service, User, UserBalance } from '@/lib/types'
 
 interface BookingFormData {
     date: string
@@ -47,9 +42,6 @@ export default function PaymentPage() {
     const [paymentComplete, setPaymentComplete] = useState(false)
 
     useEffect(() => {
-        // Initialize sample data if needed
-        initializeSampleData()
-
         // Check authentication
         if (!isAuthenticated) {
             router.push('/login')
@@ -82,37 +74,45 @@ export default function PaymentPage() {
         ) as BookingFormData
         setBookingData(parsedBookingData)
 
-        // Load service data
-        const services = getServices()
-        const foundService = services.find((s) => s.id === idString)
+        // Load service, provider, and user balance from API
+        const loadPaymentData = async () => {
+            try {
+                const foundService = await servicesApi.getService(idString!)
 
-        if (!foundService) {
-            toast.error('ไม่พบบริการที่ต้องการ')
-            router.push('/services')
-            return
+                if (!foundService) {
+                    toast.error('ไม่พบบริการที่ต้องการ')
+                    router.push('/services')
+                    return
+                }
+
+                setService(foundService)
+
+                // Load provider data
+                const foundProvider = await usersApi.getUser(
+                    foundService.providerId
+                )
+
+                if (!foundProvider) {
+                    toast.error('ไม่พบผู้ให้บริการ')
+                    router.push('/services')
+                    return
+                }
+
+                setProvider(foundProvider)
+
+                // Load user balance
+                const balance = await usersApi.getUserBalance(user.id)
+                setUserBalance(balance)
+
+                setLoading(false)
+            } catch (error) {
+                console.error('Error loading payment data:', error)
+                toast.error('ไม่สามารถโหลดข้อมูลได้')
+                router.push('/services')
+            }
         }
 
-        setService(foundService)
-
-        // Load provider data
-        const users = getUsers()
-        const foundProvider = users.find(
-            (u) => u.id === foundService.providerId
-        )
-
-        if (!foundProvider) {
-            toast.error('ไม่พบผู้ให้บริการ')
-            router.push('/services')
-            return
-        }
-
-        setProvider(foundProvider)
-
-        // Load user balance
-        const balance = getUserBalance(user.id)
-        setUserBalance(balance)
-
-        setLoading(false)
+        void loadPaymentData()
     }, [id, idString, router, isAuthenticated, user])
 
     const handlePayment = async () => {
@@ -140,53 +140,59 @@ export default function PaymentPage() {
                     throw new Error('ยอดเงินในกระเป๋าไม่เพียงพอ')
                 }
 
-                // Pay with wallet
-                payWithWallet(
-                    user.id,
-                    depositAmount,
-                    `ชำระเงินมัดจำ - ${service.name}`,
-                    undefined // bookingId will be set after booking creation
-                )
+                // Deduct from wallet via transaction API
+                await transactionsApi.createTransaction({
+                    customerId: user.id,
+                    amount: depositAmount,
+                    currency: 'THB',
+                    method: 'wallet',
+                    type: 'payment',
+                    status: 'completed',
+                    note: `ชำระเงิน - ${service.name}`,
+                })
             } else {
                 // Simulate payment processing delay for other methods
                 await new Promise((resolve) => setTimeout(resolve, 2000))
             }
 
-            // Create booking and payment after successful payment
-            createBookingAfterPayment(
-                {
-                    customerId: user.id,
-                    providerId: provider.id,
-                    serviceId: service.id,
-                    serviceName: service.name,
-                    date: bookingData.date,
-                    startTime: bookingData.startTime,
-                    endTime:
-                        bookingData.serviceType === 'daily'
-                            ? '23:59'
-                            : (bookingData.endTime ?? '18:00'),
-                    totalHours:
-                        bookingData.serviceType === 'daily'
-                            ? 8
-                            : (bookingData.duration ?? 1),
-                    totalAmount,
-                    depositAmount: depositAmount, // 100% payment
-                    status: 'pending',
-                    specialRequests: bookingData.specialRequests,
-                },
-                {
-                    customerId: user.id,
-                    providerId: provider.id,
-                    amount: depositAmount,
-                    paymentMethod: paymentMethod as
-                        | 'credit_card'
-                        | 'promptpay'
-                        | 'bank_transfer',
-                    status: 'completed',
-                    transactionId: `txn_${Date.now()}`,
-                    completedAt: new Date().toISOString(),
-                }
-            )
+            // Create booking via API
+            const booking = await bookingsApi.createBooking({
+                serviceId: service.id,
+                date: bookingData.date,
+                startTime: bookingData.startTime,
+                endTime:
+                    bookingData.serviceType === 'daily'
+                        ? '23:59'
+                        : (bookingData.endTime ?? '18:00'),
+                totalHours:
+                    bookingData.serviceType === 'daily'
+                        ? 8
+                        : (bookingData.duration ?? 1),
+                totalAmount,
+                depositAmount: depositAmount,
+                status: 'pending',
+                paymentStatus: 'pending',
+                specialRequests: bookingData.specialRequests,
+            })
+
+            // Create payment record via API
+            await paymentsApi.createPayment({
+                bookingId: booking.id,
+                customerId: user.id,
+                providerId: provider.id,
+                amount: depositAmount,
+                paymentMethod: paymentMethod as
+                    | 'credit_card'
+                    | 'promptpay'
+                    | 'bank_transfer',
+                status: 'completed',
+                transactionId: `txn_${Date.now()}`,
+            })
+
+            // Update booking payment status
+            await bookingsApi.updateBooking(booking.id, {
+                paymentStatus: 'paid',
+            })
 
             // Clear booking data from sessionStorage
             sessionStorage.removeItem(`bookingData_${idString}`)
@@ -511,7 +517,7 @@ export default function PaymentPage() {
                             {/* Provider */}
                             <div className="mb-4 flex items-center space-x-3 border-b pb-4">
                                 <Image
-                                    src={provider.img || '/img/p1.jpg'}
+                                    src={provider.img ?? '/img/p1.jpg'}
                                     alt={provider.firstName}
                                     width={48}
                                     height={48}

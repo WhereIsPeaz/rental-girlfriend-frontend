@@ -14,16 +14,11 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthContext } from '@/contexts/AuthContext'
-import {
-    getUserBalance,
-    getTransactionHistory,
-    processWithdrawal,
-    getBookingsByProvider,
-    initializeSampleData,
-    type Transaction,
-    type UserBalance,
-    type Booking,
-} from '@/lib/localStorage'
+import * as usersApi from '@/lib/api/users'
+import * as transactionsApi from '@/lib/api/transactions'
+import * as withdrawalsApi from '@/lib/api/withdrawals'
+import * as bookingsApi from '@/lib/api/bookings'
+import type { Transaction, UserBalance, Booking } from '@/lib/types'
 
 export default function ProviderDashboard() {
     const { user, isAuthenticated, isProvider } = useAuthContext()
@@ -53,20 +48,18 @@ export default function ProviderDashboard() {
         setLoading(true)
 
         try {
-            // Simulate API delay for data loading
-            await new Promise((resolve) => setTimeout(resolve, 800))
+            const [userBalance, transactionsList, providerBookingsResponse] =
+                await Promise.all([
+                    usersApi.getUserBalance(user.id),
+                    transactionsApi.listTransactions({ customerId: user.id }),
+                    bookingsApi.listBookings({ providerId: user.id, limit: 100 }),
+                ])
 
-            const userBalance = getUserBalance(user.id)
             setBalance(userBalance)
-
-            const transactionHistory = getTransactionHistory(user.id, {
-                limit: 50,
-            })
-            setTransactions(transactionHistory)
-
-            const providerBookings = getBookingsByProvider(user.id)
-            setBookings(providerBookings)
-        } catch {
+            setTransactions(transactionsList.slice(0, 50))
+            setBookings(providerBookingsResponse.data)
+        } catch (error) {
+            console.error('Error loading dashboard data:', error)
             toast.error('ไม่สามารถโหลดข้อมูลได้')
         } finally {
             setLoading(false)
@@ -74,8 +67,6 @@ export default function ProviderDashboard() {
     }, [user])
 
     useEffect(() => {
-        initializeSampleData()
-
         if (!isAuthenticated) {
             router.push('/login')
             return
@@ -152,16 +143,13 @@ export default function ProviderDashboard() {
         })
 
         try {
-            // Simulate API delay for withdrawal processing
-            await new Promise((resolve) => setTimeout(resolve, 2500))
-
-            processWithdrawal(
-                user.id,
+            await withdrawalsApi.createWithdrawal({
+                userId: user.id,
                 amount,
-                withdrawalForm.bankName,
-                withdrawalForm.accountNumber,
-                withdrawalForm.accountName
-            )
+                bankName: withdrawalForm.bankName,
+                accountNumber: withdrawalForm.accountNumber,
+                accountName: withdrawalForm.accountName,
+            })
 
             toast.dismiss(processingToast)
             toast.success('ถอนเงินสำเร็จ!')
@@ -185,9 +173,11 @@ export default function ProviderDashboard() {
 
     const getTransactionIcon = (type: Transaction['type']) => {
         switch (type) {
-            case 'earning':
+            case 'payment':
                 return <ArrowDownLeft className="h-4 w-4 text-green-500" />
-            case 'commission':
+            case 'topup':
+                return <ArrowDownLeft className="h-4 w-4 text-green-500" />
+            case 'refund':
                 return <ArrowUpRight className="h-4 w-4 text-red-500" />
             case 'withdrawal':
                 return <Minus className="h-4 w-4 text-orange-500" />
@@ -198,10 +188,12 @@ export default function ProviderDashboard() {
 
     const getTransactionTypeText = (type: Transaction['type']) => {
         switch (type) {
-            case 'earning':
+            case 'payment':
                 return 'รายได้'
-            case 'commission':
-                return 'ค่าคอมมิชชั่น'
+            case 'topup':
+                return 'เติมเงิน'
+            case 'refund':
+                return 'คืนเงิน'
             case 'withdrawal':
                 return 'ถอนเงิน'
             default:

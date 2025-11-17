@@ -8,13 +8,10 @@ import React, {
     type ReactNode,
 } from 'react'
 import toast from 'react-hot-toast'
-import {
-    createBookingAfterPayment,
-    payWithWallet,
-    type Service,
-    type User,
-    type UserBalance,
-} from '@/lib/localStorage'
+import * as bookingsApi from '@/lib/api/bookings'
+import * as paymentsApi from '@/lib/api/payments'
+import * as transactionsApi from '@/lib/api/transactions'
+import type { Service, User, UserBalance } from '@/lib/types'
 
 interface BookingFormData {
     date: string
@@ -79,59 +76,65 @@ export function PaymentProvider({ children }: PaymentProviderProps) {
                 const totalAmount = bookingData.totalAmount
                 const depositAmount = bookingData.depositAmount // This is already 100% from booking page
 
+                // Create booking first
+                const booking = await bookingsApi.createBooking({
+                    serviceId: service.id,
+                    date: bookingData.date,
+                    startTime: bookingData.startTime,
+                    endTime:
+                        bookingData.serviceType === 'daily'
+                            ? '23:59'
+                            : (bookingData.endTime ?? '18:00'),
+                    totalHours:
+                        bookingData.serviceType === 'daily'
+                            ? 8
+                            : (bookingData.duration ?? 1),
+                    totalAmount,
+                    depositAmount: depositAmount,
+                    status: 'pending',
+                    paymentStatus: 'pending',
+                    specialRequests: bookingData.specialRequests,
+                })
+
                 // Handle wallet payment
                 if (paymentMethod === 'wallet') {
                     if (userBalance.balance < depositAmount) {
                         throw new Error('ยอดเงินในกระเป๋าไม่เพียงพอ')
                     }
 
-                    // Pay with wallet
-                    payWithWallet(
-                        user.id,
-                        depositAmount,
-                        `ชำระเงินมัดจำ - ${service.name}`,
-                        undefined // bookingId will be set after booking creation
-                    )
+                    // Create transaction for wallet payment
+                    await transactionsApi.createTransaction({
+                        customerId: user.id,
+                        amount: depositAmount,
+                        currency: 'THB',
+                        method: 'wallet',
+                        type: 'payment',
+                        status: 'completed',
+                        note: `ชำระเงิน - ${service.name}`,
+                    })
                 } else {
                     // Simulate payment processing delay for other methods
                     await new Promise((resolve) => setTimeout(resolve, 2000))
                 }
 
-                // Create booking and payment after successful payment
-                createBookingAfterPayment(
-                    {
-                        customerId: user.id,
-                        providerId: provider.id,
-                        serviceId: service.id,
-                        serviceName: service.name,
-                        date: bookingData.date,
-                        startTime: bookingData.startTime,
-                        endTime:
-                            bookingData.serviceType === 'daily'
-                                ? '23:59'
-                                : (bookingData.endTime ?? '18:00'),
-                        totalHours:
-                            bookingData.serviceType === 'daily'
-                                ? 8
-                                : (bookingData.duration ?? 1),
-                        totalAmount,
-                        depositAmount: depositAmount, // 100% payment
-                        status: 'pending',
-                        specialRequests: bookingData.specialRequests,
-                    },
-                    {
-                        customerId: user.id,
-                        providerId: provider.id,
-                        amount: depositAmount,
-                        paymentMethod: paymentMethod as
-                            | 'credit_card'
-                            | 'promptpay'
-                            | 'bank_transfer',
-                        status: 'completed',
-                        transactionId: `txn_${Date.now()}`,
-                        completedAt: new Date().toISOString(),
-                    }
-                )
+                // Create payment record
+                await paymentsApi.createPayment({
+                    bookingId: booking.id,
+                    customerId: user.id,
+                    providerId: provider.id,
+                    amount: depositAmount,
+                    paymentMethod: paymentMethod as
+                        | 'credit_card'
+                        | 'promptpay'
+                        | 'bank_transfer',
+                    status: 'completed',
+                    transactionId: `txn_${Date.now()}`,
+                })
+
+                // Update booking payment status
+                await bookingsApi.updateBooking(booking.id, {
+                    paymentStatus: 'paid',
+                })
 
                 // Clear booking data from sessionStorage
                 sessionStorage.removeItem(`bookingData_${serviceId}`)

@@ -8,17 +8,11 @@ import React, {
     type ReactNode,
 } from 'react'
 import toast from 'react-hot-toast'
-import {
-    getUserBalance,
-    getTransactionHistory,
-    processWithdrawal,
-    topUpBalance,
-    getBookingsByProvider,
-    initializeSampleData,
-    type Transaction,
-    type UserBalance,
-    type Booking,
-} from '@/lib/localStorage'
+import * as usersApi from '@/lib/api/users'
+import * as transactionsApi from '@/lib/api/transactions'
+import * as withdrawalsApi from '@/lib/api/withdrawals'
+import * as bookingsApi from '@/lib/api/bookings'
+import type { Transaction, UserBalance, Booking } from '@/lib/types'
 
 interface WithdrawalData {
     amount: number
@@ -60,24 +54,22 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
             setLoading(true)
 
             try {
-                // Initialize sample data if needed
-                initializeSampleData()
+                // Fetch balance and transactions from API
+                const [userBalance, transactionsList] = await Promise.all([
+                    usersApi.getUserBalance(userId),
+                    transactionsApi.listTransactions({ customerId: userId }),
+                ])
 
-                // Simulate API delay for data loading
-                await new Promise((resolve) => setTimeout(resolve, 800))
-
-                const userBalance = getUserBalance(userId)
                 setBalance(userBalance)
-
-                const transactionHistory = getTransactionHistory(userId, {
-                    limit: 50,
-                })
-                setTransactions(transactionHistory)
+                setTransactions(transactionsList.slice(0, 50)) // Limit to 50
 
                 // Load bookings for providers
                 if (userType === 'provider') {
-                    const providerBookings = getBookingsByProvider(userId)
-                    setBookings(providerBookings)
+                    const providerBookingsResponse = await bookingsApi.listBookings({
+                        providerId: userId,
+                        limit: 100,
+                    })
+                    setBookings(providerBookingsResponse.data)
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error)
@@ -97,16 +89,13 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
             })
 
             try {
-                // Simulate API delay for withdrawal processing
-                await new Promise((resolve) => setTimeout(resolve, 2500))
-
-                processWithdrawal(
+                await withdrawalsApi.createWithdrawal({
                     userId,
-                    data.amount,
-                    data.bankName,
-                    data.accountNumber,
-                    data.accountName
-                )
+                    amount: data.amount,
+                    bankName: data.bankName,
+                    accountNumber: data.accountNumber,
+                    accountName: data.accountName,
+                })
 
                 toast.dismiss(processingToast)
                 toast.success('ถอนเงินสำเร็จ!')
@@ -132,10 +121,15 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
             })
 
             try {
-                // Simulate API delay for top-up processing
-                await new Promise((resolve) => setTimeout(resolve, 1800))
-
-                topUpBalance(userId, amount)
+                await transactionsApi.createTransaction({
+                    customerId: userId,
+                    amount,
+                    currency: 'THB',
+                    method: 'topup',
+                    type: 'topup',
+                    status: 'completed',
+                    note: 'เติมเงินเข้าบัญชี',
+                })
 
                 toast.dismiss(processingToast)
                 toast.success('เติมเงินสำเร็จ!')
