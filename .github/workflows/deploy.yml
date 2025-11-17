@@ -25,10 +25,10 @@ jobs:
             git pull origin deploy
             
             # Rebuild ONLY the 'api' service image
-            sudo docker compose build front
+            sudo docker compose -f ${{ secrets.DOCKER_COMPOSE_PATH }} build front
             
             # Restart
-            sudo docker compose up -d
+            sudo docker compose -f ${{ secrets.DOCKER_COMPOSE_PATH }} up -d
             
             # Clean up old, unused images
             sudo docker image prune -f
