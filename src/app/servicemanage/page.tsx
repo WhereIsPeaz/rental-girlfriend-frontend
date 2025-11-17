@@ -150,8 +150,8 @@ export default function ServiceMangePage() {
                                             ReviewCount={service.reviewCount}
                                             imgSrc={normalizeImagePath(
                                                 service.images[0] ??
-                                                    user?.img ??
-                                                    '/img/provider1.png'
+                                                user?.img ??
+                                                '/img/provider1.png'
                                             )}
                                             buttonTitle="แก้ไข"
                                             Categories={service.categories}

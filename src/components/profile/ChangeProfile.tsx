@@ -7,6 +7,7 @@ import {
     processImageFile,
     isBase64Image,
     normalizeImagePath,
+    imageUrlToBase64,
 } from '@/lib/imageUtils'
 
 interface User {
@@ -30,6 +31,8 @@ export default function ChangeProfile({
 }) {
     const [isUploading, setIsUploading] = useState(false)
     const [uploadError, setUploadError] = useState<string | null>(null)
+    const [isConvertingAvatar, setIsConvertingAvatar] = useState(false)
+    const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null)
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -61,7 +64,36 @@ export default function ChangeProfile({
         }
     }
 
-    const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null)
+    const handleAvatarSelect = async (url: string) => {
+        setIsConvertingAvatar(true)
+        setSelectedAvatar(url)
+        setUploadError(null)
+
+        try {
+            // Convert the image URL to base64
+            const base64 = await imageUrlToBase64(url, {
+                maxWidth: 400,
+                maxHeight: 400,
+                quality: 0.8,
+            })
+
+            // Validate the base64 output
+            if (!base64.startsWith('data:image/')) {
+                throw new Error('Invalid base64 format generated')
+            }
+
+            setTempImg(base64)
+        } catch (error) {
+            setUploadError(
+                error instanceof Error
+                    ? error.message
+                    : 'เกิดข้อผิดพลาดในการแปลงรูปภาพ'
+            )
+            setSelectedAvatar(null)
+        } finally {
+            setIsConvertingAvatar(false)
+        }
+    }
 
     return (
         <div className="absolute top-0 left-0 h-[100%] w-[100%] bg-[rgba(33,43,54,0.5)]">
@@ -196,9 +228,16 @@ export default function ChangeProfile({
                     </div>
                     <div className="flex h-[362px] w-[344px] flex-col items-start gap-[12px]">
                         {/* เลือกรูปจากตัวอย่าง */}
-                        <p className="h-[22px] w-[344px] text-[16px] leading-[140%] font-normal text-black">
-                            เลือกรูปจากตัวอย่าง
-                        </p>
+                        <div className="flex w-[344px] items-center justify-between">
+                            <p className="text-[16px] leading-[140%] font-normal text-black">
+                                เลือกรูปจากตัวอย่าง
+                            </p>
+                            {uploadError && (
+                                <p className="text-[11px] text-red-500">
+                                    {uploadError}
+                                </p>
+                            )}
+                        </div>
                         {/* รูปให้เลือก */}
                         <div className="grid h-[328px] w-[344px] grid-cols-4 gap-x-2 gap-y-1">
                             {avatars.map((url, i) => (
@@ -210,18 +249,27 @@ export default function ChangeProfile({
                                         width={80}
                                         height={80}
                                         onClick={() => {
-                                            setTempImg(url)
-                                            setSelectedAvatar(url)
+                                            void handleAvatarSelect(url)
                                         }}
-                                        className={`top-0 left-0 box-border h-20 w-20 cursor-pointer rounded-lg ${selectedAvatar === url ? 'border-2 border-[#F24472]' : ''}`}
+                                        className={`top-0 left-0 box-border h-20 w-20 cursor-pointer rounded-lg ${
+                                            selectedAvatar === url
+                                                ? 'border-2 border-[#F24472]'
+                                                : isConvertingAvatar
+                                                  ? 'cursor-wait opacity-50'
+                                                  : ''
+                                        }`}
                                     />
                                     {selectedAvatar === url && (
                                         <div className="">
                                             <div className="absolute top-1/2 left-1/2 z-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#F24472]">
-                                                <Check
-                                                    strokeWidth={1.25}
-                                                    className="z-2 h-6 w-6 text-white"
-                                                />
+                                                {isConvertingAvatar ? (
+                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                ) : (
+                                                    <Check
+                                                        strokeWidth={1.25}
+                                                        className="z-2 h-6 w-6 text-white"
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     )}

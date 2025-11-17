@@ -171,6 +171,70 @@ export const isBase64Image = (str: string | undefined): boolean => {
 }
 
 /**
+ * Validate base64 image string matches backend requirements
+ * Returns validation result with error message if invalid
+ */
+export const validateBase64Image = (
+    base64: string
+): { valid: boolean; error?: string } => {
+    if (!base64 || typeof base64 !== 'string') {
+        return { valid: false, error: 'Image must be a non-empty string' }
+    }
+
+    const trimmed = base64.trim()
+
+    // Check data URI format: data:image/[type];base64,[base64data]
+    const dataUriRegex =
+        /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/
+    const match = trimmed.match(dataUriRegex)
+
+    if (!match) {
+        return {
+            valid: false,
+            error: 'Invalid base64 format. Must be: data:image/[type];base64,[data]',
+        }
+    }
+
+    const mimeType = match[1]!.toLowerCase()
+    const base64Data = match[2]!
+
+    // Check allowed mime types
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+    const normalizedMimeType =
+        mimeType === 'image/jpg' ? 'image/jpeg' : mimeType
+
+    if (!allowedTypes.includes(normalizedMimeType)) {
+        return {
+            valid: false,
+            error: `Unsupported image type: ${mimeType}. Allowed: png, jpeg, gif, webp`,
+        }
+    }
+
+    // Check base64 string is not empty
+    if (!base64Data || base64Data.length === 0) {
+        return { valid: false, error: 'Base64 data is empty' }
+    }
+
+    // Estimate size (max 5MB)
+    const padding = base64Data.endsWith('==')
+        ? 2
+        : base64Data.endsWith('=')
+          ? 1
+          : 0
+    const approxBytes = Math.floor((base64Data.length * 3) / 4) - padding
+    const maxBytes = 5 * 1024 * 1024 // 5MB
+
+    if (approxBytes > maxBytes) {
+        return {
+            valid: false,
+            error: `Image too large: ${Math.round(approxBytes / 1024 / 1024)}MB. Max: 5MB`,
+        }
+    }
+
+    return { valid: true }
+}
+
+/**
  * Normalize image path to ensure it starts with / or is an absolute URL
  * Handles base64 data URIs, paths, and empty strings
  */
@@ -258,4 +322,98 @@ export const compressBase64Image = (
 
         img.src = base64
     })
+}
+
+/**
+ * Convert an image URL/path to base64 data URI
+ * Useful for converting local image paths to base64 before sending to backend
+ * Uses fetch to avoid CORS issues with local images
+ */
+export const imageUrlToBase64 = async (
+    imageUrl: string,
+    options: {
+        maxWidth?: number
+        maxHeight?: number
+        quality?: number
+    } = {}
+): Promise<string> => {
+    const { maxWidth = 400, maxHeight = 400, quality = 0.8 } = options
+
+    try {
+        // Fetch the image
+        const response = await fetch(imageUrl)
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`)
+        }
+
+        // Convert to blob
+        const blob = await response.blob()
+
+        // Create image element to get dimensions
+        const img = new Image()
+        const imageLoadPromise = new Promise<HTMLImageElement>(
+            (resolve, reject) => {
+                img.onload = () => resolve(img)
+                img.onerror = () =>
+                    reject(new Error('Failed to load image for processing'))
+            }
+        )
+
+        img.src = URL.createObjectURL(blob)
+        await imageLoadPromise
+
+        // Create canvas for resizing
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+            throw new Error('Failed to get canvas context')
+        }
+
+        // Calculate new dimensions while maintaining aspect ratio
+        let { width, height } = img
+
+        if (width > height) {
+            if (width > maxWidth) {
+                height = (height * maxWidth) / width
+                width = maxWidth
+            }
+        } else {
+            if (height > maxHeight) {
+                width = (width * maxHeight) / height
+                height = maxHeight
+            }
+        }
+
+        // Set canvas dimensions
+        canvas.width = width
+        canvas.height = height
+
+        // Draw resized image
+        ctx.drawImage(img, 0, 0, width, height)
+
+        // Clean up
+        URL.revokeObjectURL(img.src)
+
+        // Convert to base64 with proper mime type detection
+        // Force JPEG for consistency and better compatibility
+        const base64Raw = canvas.toDataURL('image/jpeg', quality)
+
+        // Validate format matches backend requirements:
+        // data:image/[type];base64,[base64string with A-Za-z0-9+/=]
+        const base64Regex =
+            /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/
+        if (!base64Regex.test(base64Raw)) {
+            throw new Error('Generated base64 does not match required format')
+        }
+
+        // Clean whitespace from base64 data (remove any spaces/newlines)
+        const base64Clean = base64Raw.replace(/\s+/g, '')
+
+        return base64Clean
+    } catch (error) {
+        throw new Error(
+            `Failed to convert image to base64: ${error instanceof Error ? error.message : 'Unknown error'}`
+        )
+    }
 }

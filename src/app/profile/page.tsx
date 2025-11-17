@@ -12,6 +12,7 @@ import PersonalInfo from '@/components/profile/PersonalInfo'
 import PersonalInfoEdit from '@/components/profile/PersonalInfoEdit'
 import AccountSettings from '@/components/profile/AccountSettings'
 import ChangeProfile from '@/components/profile/ChangeProfile'
+import { validateBase64Image } from '@/lib/imageUtils'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 
@@ -216,6 +217,13 @@ export default function ProfilePage() {
                 saveProfile={async () => {
                         if (tempImg && authUser) {
                             try {
+                                // Validate base64 before sending
+                                const validation = validateBase64Image(tempImg)
+                                if (!validation.valid) {
+                                    toast.error(`รูปภาพไม่ถูกต้อง: ${validation.error}`)
+                                    return
+                                }
+
                             // อัปเดตผ่าน API
                             const updatedUserData = await usersApi.updateUser(
                                     authUser.id,
