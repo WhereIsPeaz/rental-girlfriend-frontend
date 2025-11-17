@@ -5,13 +5,8 @@ import { Plus } from 'lucide-react'
 import { Kanit } from 'next/font/google'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import {
-    createService,
-    getServicesByProvider,
-    updateService,
-    deleteService,
-    type Service,
-} from '@/lib/localStorage'
+import * as servicesApi from '@/lib/api/services'
+import type { Service } from '@/lib/types'
 import AddServiceCard from '@/components/AddServiceCard'
 import ServiceModal from '@/components/ServiceModal'
 import Card from '@/components/Card'
@@ -39,10 +34,23 @@ export default function ServiceMangePage() {
             return
         }
 
-        // โหลดบริการของผู้ให้บริการ
-        const userServices = getServicesByProvider(user.id)
-        setServices(userServices)
-        setLoading(false)
+        // โหลดบริการของผู้ให้บริการจาก API
+        const loadServices = async () => {
+            try {
+                const response = await servicesApi.listServices({
+                    providerId: user.id,
+                    limit: 100,
+                })
+                setServices(response.data)
+            } catch (error) {
+                console.error('Error loading services:', error)
+                toast.error('ไม่สามารถโหลดบริการได้')
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        void loadServices()
     }, [user, isProvider, router])
 
     // ฟังก์ชันเปิด modal สำหรับสร้างบริการใหม่
@@ -62,7 +70,7 @@ export default function ServiceMangePage() {
         if (!editingService) return
 
         try {
-            deleteService(editingService.id)
+            await servicesApi.deleteService(editingService.id)
             setServices((prev) =>
                 prev.filter((s) => s.id !== editingService.id)
             )
@@ -202,7 +210,7 @@ export default function ServiceMangePage() {
 
                         if (editingService) {
                             // แก้ไขบริการ
-                            const updatedService = updateService(
+                            const updatedService = await servicesApi.updateService(
                                 editingService.id,
                                 serviceData
                             )
@@ -216,14 +224,15 @@ export default function ServiceMangePage() {
                             toast.success('อัปเดตบริการสำเร็จ!')
                         } else {
                             // สร้างบริการใหม่
-                            const newService = createService(serviceData)
+                            const newService = await servicesApi.createService(serviceData)
                             setServices((prev) => [...prev, newService])
                             toast.success('สร้างบริการสำเร็จ!')
                         }
 
                         setOpen(false)
                         setEditingService(null)
-                    } catch {
+                    } catch (error) {
+                        console.error('Error saving service:', error)
                         toast.error('เกิดข้อผิดพลาดในการบันทึกบริการ')
                     }
                 }}

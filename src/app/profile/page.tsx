@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Kanit } from 'next/font/google'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { updateUser as updateUserInStorage } from '@/lib/localStorage'
+import * as usersApi from '@/lib/api/users'
 import toast from 'react-hot-toast'
 
 import ProfileBanner from '@/components/profile/ProfileBanner'
@@ -52,12 +52,12 @@ export default function ProfilePage() {
         if (authUser) {
             const newUserData = {
                 type: authUser.type,
-                img: authUser.img,
-                id: authUser.idCard,
+                img: authUser.img ?? '/img/p2.jpg',
+                id: authUser.idCard ?? '',
                 username: authUser.username,
                 name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
                 email: authUser.email,
-                phone: authUser.phone,
+                phone: authUser.phone ?? '',
                 birth: authUser.birthdate,
                 gender: authUser.gender,
                 interest: authUser.interestedGender,
@@ -99,11 +99,8 @@ export default function ProfilePage() {
         try {
             setIsUpdating(true) // Set flag to prevent useEffect from overriding
 
-            // Simulate API delay for profile update
-            await new Promise((resolve) => setTimeout(resolve, 1500))
-
-            // อัปเดตใน localStorage
-            const updatedUserData = updateUserInStorage(authUser.id, {
+            // อัปเดตผ่าน API
+            const updatedUserData = await usersApi.updateUser(authUser.id, {
                 firstName: firstName ?? '',
                 lastName,
                 username: draft.username,
@@ -121,12 +118,12 @@ export default function ProfilePage() {
             // อัปเดต state ให้สอดคล้องกัน (ใช้ข้อมูลจาก updatedUserData)
             const newUserData = {
                 type: updatedUserData.type,
-                img: updatedUserData.img,
-                id: updatedUserData.idCard,
+                img: updatedUserData.img ?? '/img/p2.jpg',
+                id: updatedUserData.idCard ?? '',
                 username: updatedUserData.username,
                 name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
                 email: updatedUserData.email,
-                phone: updatedUserData.phone,
+                phone: updatedUserData.phone ?? '',
                 birth: updatedUserData.birthdate,
                 gender: updatedUserData.gender,
                 interest: updatedUserData.interestedGender,
@@ -216,11 +213,11 @@ export default function ProfilePage() {
                     tempImg={tempImg}
                     setChangeProfile={() => setChangeProfile(false)}
                     setTempImg={(url) => setTempImg(url)}
-                    saveProfile={() => {
+                saveProfile={async () => {
                         if (tempImg && authUser) {
                             try {
-                                // อัปเดตใน localStorage
-                                const updatedUserData = updateUserInStorage(
+                            // อัปเดตผ่าน API
+                            const updatedUserData = await usersApi.updateUser(
                                     authUser.id,
                                     {
                                         img: tempImg,
@@ -233,12 +230,12 @@ export default function ProfilePage() {
                                 // อัปเดต state ทั้งหมดให้สอดคล้องกัน (ใช้ข้อมูลจาก updatedUserData)
                                 const newUserData = {
                                     type: updatedUserData.type,
-                                    img: updatedUserData.img,
-                                    id: updatedUserData.idCard,
+                                    img: updatedUserData.img ?? '/img/p2.jpg',
+                                    id: updatedUserData.idCard ?? '',
                                     username: updatedUserData.username,
                                     name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
                                     email: updatedUserData.email,
-                                    phone: updatedUserData.phone,
+                                    phone: updatedUserData.phone ?? '',
                                     birth: updatedUserData.birthdate,
                                     gender: updatedUserData.gender,
                                     interest: updatedUserData.interestedGender,

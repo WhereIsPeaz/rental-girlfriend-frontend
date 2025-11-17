@@ -13,16 +13,9 @@ import {
     XCircle,
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import {
-    getUsers,
-    getBookingsByProvider,
-    updateBooking,
-    cancelBookingWithRefund,
-    completeBookingPayment,
-    initializeSampleData,
-    type User as UserType,
-    type Booking,
-} from '@/lib/localStorage'
+import * as bookingsApi from '@/lib/api/bookings'
+import * as usersApi from '@/lib/api/users'
+import type { User as UserType, Booking } from '@/lib/types'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -38,35 +31,41 @@ const ProviderBookings: React.FC = () => {
         if (!user || user.type !== 'provider') return
 
         try {
-            // Simulate API delay for booking data loading
-            await new Promise((resolve) => setTimeout(resolve, 500))
-
-            // Get bookings for current provider
-            const providerBookings = getBookingsByProvider(user.id)
-
-            setBookings(providerBookings)
-
-            // Load customer data
-            const users = getUsers()
-            const customerData: Record<string, UserType> = {}
-
-            providerBookings.forEach((booking) => {
-                const customer = users.find((u) => u.id === booking.customerId)
-                if (customer) {
-                    customerData[booking.customerId] = customer
-                }
+            // Get bookings from API
+            const response = await bookingsApi.listBookings({
+                providerId: user.id,
+                limit: 100,
             })
 
+            setBookings(response.data)
+
+            // Load customer data
+            const customerData: Record<string, UserType> = {}
+
+            // Fetch customer details for each booking
+            await Promise.all(
+                response.data.map(async (booking) => {
+                    if (!customerData[booking.customerId]) {
+                        try {
+                            const customer = await usersApi.getUser(
+                                booking.customerId
+                            )
+                            customerData[booking.customerId] = customer
+                        } catch (error) {
+                            console.error('Error loading customer:', error)
+                        }
+                    }
+                })
+            )
+
             setCustomers(customerData)
-        } catch {
+        } catch (error) {
+            console.error('Error loading bookings:', error)
             toast.error('ไม่สามารถโหลดข้อมูลการจองได้')
         }
     }, [user])
 
     useEffect(() => {
-        // Initialize sample data if needed
-        initializeSampleData()
-
         if (user && isAuthenticated && isProvider) {
             void loadBookings()
         }
@@ -127,13 +126,8 @@ const ProviderBookings: React.FC = () => {
                                 )
 
                                 try {
-                                    // Simulate API delay for booking confirmation
-                                    await new Promise((resolve) =>
-                                        setTimeout(resolve, 1200)
-                                    )
-
-                                    // Update booking status in localStorage
-                                    updateBooking(bookingId, {
+                                    // Update booking status via API
+                                    await bookingsApi.updateBooking(bookingId, {
                                         status: 'confirmed',
                                     })
 
@@ -207,17 +201,11 @@ const ProviderBookings: React.FC = () => {
                                 )
 
                                 try {
-                                    // Simulate API delay for booking rejection
-                                    await new Promise((resolve) =>
-                                        setTimeout(resolve, 1500)
-                                    )
-
-                                    // Cancel booking with full refund to customer
-                                    cancelBookingWithRefund(
-                                        bookingId,
-                                        'provider',
-                                        'ปฏิเสธโดยผู้ให้บริการ'
-                                    )
+                                    // Cancel booking via API with full refund
+                                    await bookingsApi.updateBooking(bookingId, {
+                                        status: 'cancelled',
+                                        paymentStatus: 'refunded',
+                                    })
 
                                     // Update local state
                                     setBookings((prev) =>
@@ -290,13 +278,10 @@ const ProviderBookings: React.FC = () => {
                                 )
 
                                 try {
-                                    // Simulate API delay for booking completion
-                                    await new Promise((resolve) =>
-                                        setTimeout(resolve, 1000)
-                                    )
-
-                                    // Process booking completion and handle payments
-                                    completeBookingPayment(bookingId)
+                                    // Update booking completion via API
+                                    await bookingsApi.updateBooking(bookingId, {
+                                        status: 'completed',
+                                    })
 
                                     // Update local state
                                     setBookings((prev) =>
@@ -605,7 +590,7 @@ const ProviderBookings: React.FC = () => {
                                         <div className="flex items-center space-x-4">
                                             <Image
                                                 src={
-                                                    customer.img ||
+                                                    customer.img ??
                                                     '/img/p1.jpg'
                                                 }
                                                 alt={customer.firstName}

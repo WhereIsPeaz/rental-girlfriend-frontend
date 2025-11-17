@@ -12,17 +12,11 @@ import {
     ArrowLeft,
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import {
-    getBookingById,
-    getUsers,
-    getServices,
-    getReviewByBooking,
-    initializeSampleData,
-    type User as UserType,
-    type Booking,
-    type Review,
-    type Service,
-} from '@/lib/localStorage'
+import * as bookingsApi from '@/lib/api/bookings'
+import * as usersApi from '@/lib/api/users'
+import * as servicesApi from '@/lib/api/services'
+import * as reviewsApi from '@/lib/api/reviews'
+import type { User as UserType, Booking, Review, Service } from '@/lib/types'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import ReviewModal from '@/components/ReviewModal'
@@ -41,9 +35,6 @@ export default function BookingDetailPage() {
     const [reviewModalOpen, setReviewModalOpen] = useState(false)
 
     useEffect(() => {
-        // Initialize sample data if needed
-        initializeSampleData()
-
         // Check authentication
         if (!isAuthenticated || !user) {
             router.push('/login')
@@ -61,41 +52,50 @@ export default function BookingDetailPage() {
             return
         }
 
-        // Load booking data
-        const bookingData = getBookingById(id)
+        // Load booking data from API
+        const loadBookingData = async () => {
+            try {
+                const bookingData = await bookingsApi.getBooking(id)
 
-        if (!bookingData) {
-            toast.error('ไม่พบการจองที่ต้องการ')
-            router.push('/bookings')
-            return
+                if (!bookingData) {
+                    toast.error('ไม่พบการจองที่ต้องการ')
+                    router.push('/bookings')
+                    return
+                }
+
+                // Check if booking belongs to current user
+                if (bookingData.customerId !== user.id) {
+                    toast.error('คุณไม่มีสิทธิ์เข้าถึงการจองนี้')
+                    router.push('/bookings')
+                    return
+                }
+
+                setBooking(bookingData)
+
+                // Load provider, service, and review data in parallel
+                const [providerData, serviceData, reviewsResponse] =
+                    await Promise.all([
+                        usersApi.getUser(bookingData.providerId).catch(() => null),
+                        servicesApi
+                            .getService(bookingData.serviceId)
+                            .catch(() => null),
+                        reviewsApi
+                            .listReviews({ bookingId: id, limit: 1 })
+                            .catch(() => ({ data: [] })),
+                    ])
+
+                setProvider(providerData)
+                setService(serviceData)
+                setReview(reviewsResponse.data[0] ?? null)
+                setLoading(false)
+            } catch (error) {
+                console.error('Error loading booking:', error)
+                toast.error('ไม่สามารถโหลดข้อมูลการจองได้')
+                router.push('/bookings')
+            }
         }
 
-        // Check if booking belongs to current user
-        if (bookingData.customerId !== user.id) {
-            toast.error('คุณไม่มีสิทธิ์เข้าถึงการจองนี้')
-            router.push('/bookings')
-            return
-        }
-
-        setBooking(bookingData)
-
-        // Load provider data
-        const users = getUsers()
-        const providerData = users.find((u) => u.id === bookingData.providerId)
-        setProvider(providerData ?? null)
-
-        // Load service data
-        const services = getServices()
-        const serviceData = services.find(
-            (s) => s.id === bookingData.serviceId
-        )
-        setService(serviceData ?? null)
-
-        // Load review data
-        const reviewData = getReviewByBooking(id)
-        setReview(reviewData)
-
-        setLoading(false)
+        void loadBookingData()
     }, [id, router, isAuthenticated, user])
 
     const handleReviewClick = () => {
@@ -118,11 +118,18 @@ export default function BookingDetailPage() {
         setReviewModalOpen(true)
     }
 
-    const handleReviewSubmit = () => {
+    const handleReviewSubmit = async () => {
         // Reload review data
         if (id) {
-            const reviewData = getReviewByBooking(id)
-            setReview(reviewData)
+            try {
+                const reviewsResponse = await reviewsApi.listReviews({
+                    bookingId: id,
+                    limit: 1,
+                })
+                setReview(reviewsResponse.data[0] ?? null)
+            } catch (error) {
+                console.error('Error loading review:', error)
+            }
         }
     }
 
@@ -209,7 +216,7 @@ export default function BookingDetailPage() {
                     <div className="mb-6 flex items-start justify-between">
                         <div className="flex items-center space-x-4">
                             <Image
-                                src={provider.img || '/img/p1.jpg'}
+                                src={provider.img ?? '/img/p1.jpg'}
                                 alt={provider.firstName}
                                 width={80}
                                 height={80}

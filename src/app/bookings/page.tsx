@@ -11,15 +11,10 @@ import {
     AlertCircle,
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import {
-    getUsers,
-    getBookingsByCustomer,
-    cancelBookingWithRefund,
-    initializeSampleData,
-    getReviewByBooking,
-    type User as UserType,
-    type Booking,
-} from '@/lib/localStorage'
+import * as bookingsApi from '@/lib/api/bookings'
+import * as usersApi from '@/lib/api/users'
+import * as reviewsApi from '@/lib/api/reviews'
+import type { User as UserType, Booking } from '@/lib/types'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import ReviewModal from '@/components/ReviewModal'
@@ -35,41 +30,71 @@ const Bookings: React.FC = () => {
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
         null
     )
+    const [bookingsWithReviews, setBookingsWithReviews] = useState<Set<string>>(
+        new Set()
+    )
 
     const loadBookings = useCallback(async () => {
         if (!user) return
 
         try {
-            // Simulate API delay for booking data loading
-            await new Promise((resolve) => setTimeout(resolve, 500))
+            // Get bookings from API
+            const response =
+                user.type === 'customer'
+                    ? await bookingsApi.listBookings({
+                          customerId: user.id,
+                          limit: 100,
+                      })
+                    : { data: [] }
 
-            // Get bookings for current customer
-            const userBookings =
-                user.type === 'customer' ? getBookingsByCustomer(user.id) : []
-
-            setBookings(userBookings)
+            setBookings(response.data)
 
             // Load provider data
-            const users = getUsers()
             const userData: Record<string, UserType> = {}
 
-            userBookings.forEach((booking) => {
-                const provider = users.find((u) => u.id === booking.providerId)
-                if (provider) {
-                    userData[booking.providerId] = provider
-                }
-            })
+            // Fetch provider details for each booking
+            await Promise.all(
+                response.data.map(async (booking) => {
+                    if (!userData[booking.providerId]) {
+                        try {
+                            const provider = await usersApi.getUser(
+                                booking.providerId
+                            )
+                            userData[booking.providerId] = provider
+                        } catch (error) {
+                            console.error('Error loading provider:', error)
+                        }
+                    }
+                })
+            )
 
             setProviders(userData)
-        } catch {
+
+            // Check which bookings have reviews
+            const reviewedBookingIds = new Set<string>()
+            await Promise.all(
+                response.data.map(async (booking) => {
+                    try {
+                        const reviews = await reviewsApi.listReviews({
+                            bookingId: booking.id,
+                            limit: 1,
+                        })
+                        if (reviews.data.length > 0) {
+                            reviewedBookingIds.add(booking.id)
+                        }
+                    } catch (error) {
+                        console.error('Error checking review:', error)
+                    }
+                })
+            )
+            setBookingsWithReviews(reviewedBookingIds)
+        } catch (error) {
+            console.error('Error loading bookings:', error)
             toast.error('ไม่สามารถโหลดข้อมูลการจองได้')
         }
     }, [user])
 
     useEffect(() => {
-        // Initialize sample data if needed
-        initializeSampleData()
-
         if (user && isAuthenticated) {
             void loadBookings()
         }
@@ -150,17 +175,11 @@ const Bookings: React.FC = () => {
                                 )
 
                                 try {
-                                    // Simulate API delay for booking cancellation
-                                    await new Promise((resolve) =>
-                                        setTimeout(resolve, 1500)
-                                    )
-
-                                    // Cancel booking with refund logic
-                                    cancelBookingWithRefund(
-                                        bookingId,
-                                        'customer',
-                                        'ยกเลิกโดยลูกค้า'
-                                    )
+                                    // Cancel booking via API
+                                    await bookingsApi.updateBooking(bookingId, {
+                                        status: 'cancelled',
+                                        paymentStatus: 'partially_refunded',
+                                    })
 
                                     // Update local state
                                     setBookings((prev) =>
@@ -212,20 +231,32 @@ const Bookings: React.FC = () => {
         )
     }
 
-    const handleReviewBooking = (bookingId: string) => {
+    const handleReviewBooking = async (bookingId: string) => {
         if (!user) return
 
         // ตรวจสอบว่ามีรีวิวแล้วหรือยัง
-        const existingReview = getReviewByBooking(bookingId)
-        if (existingReview) {
-            toast.error('คุณได้รีวิวการจองนี้แล้ว', {
-                duration: 3000,
+        try {
+            const reviewsResponse = await reviewsApi.listReviews({
+                bookingId,
+                limit: 1,
             })
-            return
-        }
 
-        setSelectedBookingId(bookingId)
-        setReviewModalOpen(true)
+            if (reviewsResponse.data.length > 0) {
+                toast.error('คุณได้รีวิวการจองนี้แล้ว', {
+                    duration: 3000,
+                })
+                return
+            }
+
+            // เปิด modal สำหรับเขียนรีวิว
+            setSelectedBookingId(bookingId)
+            setReviewModalOpen(true)
+        } catch (error) {
+            console.error('Error checking existing review:', error)
+            // ถ้าไม่พบรีวิว ให้เปิด modal ได้
+            setSelectedBookingId(bookingId)
+            setReviewModalOpen(true)
+        }
     }
 
     const handleReviewSubmit = () => {
@@ -372,7 +403,7 @@ const Bookings: React.FC = () => {
                                         <div className="flex items-center space-x-4">
                                             <Image
                                                 src={
-                                                    provider.img ||
+                                                    provider.img ??
                                                     '/img/p1.jpg'
                                                 }
                                                 alt={provider.firstName}
@@ -473,15 +504,17 @@ const Bookings: React.FC = () => {
 
                                             {booking.status === 'completed' && (
                                                 <>
-                                                    {getReviewByBooking(
+                                                    {bookingsWithReviews.has(
                                                         booking.id
                                                     ) ? (
                                                         <button
                                                             disabled
-                                                            className="flex items-center space-x-2 rounded-lg bg-gray-300 px-4 py-2 text-gray-600 cursor-not-allowed"
+                                                            className="flex cursor-not-allowed items-center space-x-2 rounded-lg bg-gray-300 px-4 py-2 text-gray-600"
                                                         >
                                                             <Star className="h-4 w-4" />
-                                                            <span>รีวิวแล้ว</span>
+                                                            <span>
+                                                                รีวิวแล้ว
+                                                            </span>
                                                         </button>
                                                     ) : (
                                                         <button
@@ -493,14 +526,18 @@ const Bookings: React.FC = () => {
                                                             className="flex items-center space-x-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2 text-white transition-all hover:from-pink-600 hover:to-rose-600"
                                                         >
                                                             <Star className="h-4 w-4" />
-                                                            <span>ให้รีวิว</span>
+                                                            <span>
+                                                                ให้รีวิว
+                                                            </span>
                                                         </button>
                                                     )}
                                                     <Link
                                                         href={`/bookings/${booking.id}`}
                                                         className="flex items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                                                     >
-                                                        <span>ดูรายละเอียด</span>
+                                                        <span>
+                                                            ดูรายละเอียด
+                                                        </span>
                                                     </Link>
                                                 </>
                                             )}
