@@ -42,6 +42,10 @@ COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
 
+# ADDED: Copy the .env file from the builder stage to the runner stage
+# This makes it available for the 'node server.js' command
+COPY --from=builder --chown=node:node /app/.env ./
+
 # Run as the non-root 'node' user for better security
 USER node
 

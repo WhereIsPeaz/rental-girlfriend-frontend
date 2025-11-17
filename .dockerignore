@@ -5,7 +5,6 @@ Dockerfile.dev
 docker-compose.yml
 
 # Ignore local environment variables and git
-.env
 .git
 .github
 
