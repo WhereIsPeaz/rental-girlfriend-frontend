@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Users API calls
-import api from '../api';
+import api from '../api'
 import {
     type User,
     type UserBalance,
@@ -10,30 +10,31 @@ import {
     UserBalanceSchema,
     PaginatedResponseSchema,
     ApiResponseSchema,
-} from '../types';
+} from '../types'
+// import type { AxiosRequestConfig } from 'axios' // <- ลบออกเนื่องจากไม่ได้ใช้งาน
 
 interface ListUsersParams {
-    page?: number;
-    limit?: number;
-    q?: string;
+    page?: number
+    limit?: number
+    q?: string
 }
 
 interface UpdateUserRequest {
-    email?: string;
-    username?: string;
-    password?: string;
-    firstName?: string;
-    lastName?: string;
-    birthdate?: string;
-    idCard?: string;
-    phone?: string;
-    gender?: string;
-    interestedGender?: string;
-    type?: 'customer' | 'provider' | 'admin';
-    img?: string;
-    joined?: string;
-    verified?: boolean;
-    generalTimeSetting?: any;
+    email?: string
+    username?: string
+    password?: string
+    firstName?: string
+    lastName?: string
+    birthdate?: string
+    idCard?: string
+    phone?: string
+    gender?: string
+    interestedGender?: string
+    type?: 'customer' | 'provider' | 'admin'
+    img?: string
+    joined?: string
+    verified?: boolean
+    generalTimeSetting?: any
 }
 
 /**
@@ -44,27 +45,30 @@ export const listUsers = async (
 ): Promise<PaginatedResponse<User>> => {
     const response = await api.get<PaginatedResponse<User>>('/users', {
         params,
-    });
-    
-    // Validate response
-    const validated = PaginatedResponseSchema(UserSchema).parse(response.data);
+    })
 
-    return validated;
-};
+    // Validate response
+    const validated = PaginatedResponseSchema(UserSchema).parse(response.data)
+
+    return validated
+}
 
 /**
  * Get a single user by ID
  */
-export const getUser = async (id: string, options?: { silent?: boolean }): Promise<User> => {
+export const getUser = async (
+    id: string,
+    options?: { silent?: boolean }
+): Promise<User> => {
     const response = await api.get<ApiResponse<User>>(`/users/${id}`, {
         suppressErrorToast: options?.silent,
-    } as any);
-    
-    // Validate response
-    const validated = ApiResponseSchema(UserSchema).parse(response.data);
+    } as Record<string, any>) // <- เปลี่ยนจาก as any เป็น as Record<string, any>
 
-    return validated.data!;
-};
+    // Validate response
+    const validated = ApiResponseSchema(UserSchema).parse(response.data)
+
+    return validated.data!
+}
 
 /**
  * Update a user (self or admin)
@@ -73,20 +77,20 @@ export const updateUser = async (
     id: string,
     data: UpdateUserRequest
 ): Promise<User> => {
-    const response = await api.put<ApiResponse<User>>(`/users/${id}`, data);
-    
-    // Validate response
-    const validated = ApiResponseSchema(UserSchema).parse(response.data);
+    const response = await api.put<ApiResponse<User>>(`/users/${id}`, data)
 
-    return validated.data!;
-};
+    // Validate response
+    const validated = ApiResponseSchema(UserSchema).parse(response.data)
+
+    return validated.data!
+}
 
 /**
  * Delete a user (self or admin)
  */
 export const deleteUser = async (id: string): Promise<void> => {
-    await api.delete(`/users/${id}`);
-};
+    await api.delete(`/users/${id}`)
+}
 
 /**
  * Update general time setting
@@ -98,23 +102,24 @@ export const updateGeneralTimeSetting = async (
     const response = await api.put<ApiResponse<User>>(
         `/users/${id}/general-time-setting`,
         setting
-    );
-    
-    // Validate response
-    const validated = ApiResponseSchema(UserSchema).parse(response.data);
+    )
 
-    return validated.data!;
-};
+    // Validate response
+    const validated = ApiResponseSchema(UserSchema).parse(response.data)
+
+    return validated.data!
+}
 
 /**
  * Get user balance (calculated from transactions)
  */
 export const getUserBalance = async (id: string): Promise<UserBalance> => {
-    const response = await api.get<ApiResponse<UserBalance>>(`/users/${id}/balance`);
-    
+    const response = await api.get<ApiResponse<UserBalance>>(
+        `/users/${id}/balance`
+    )
+
     // Validate response
-    const validated = ApiResponseSchema(UserBalanceSchema).parse(response.data);
+    const validated = ApiResponseSchema(UserBalanceSchema).parse(response.data)
 
-    return validated.data!;
-};
-
+    return validated.data!
+}

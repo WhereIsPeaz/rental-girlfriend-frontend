@@ -50,10 +50,12 @@ export default function Home() {
             if (!result.success || !result.user) {
                 setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง')
             }
-        } catch (err: any) {
-            const message = err.message || 'เกิดข้อผิดพลาด โปรดลองอีกครั้ง'
+        } catch (err: unknown) {
+            let message = 'เกิดข้อผิดพลาด โปรดลองอีกครั้ง'
+            if (err instanceof Error) {
+                message = err.message
+            }
             setError(message)
-        } finally {
             setIsLoading(false)
         }
     }

@@ -59,10 +59,11 @@ export default function ProfilePage() {
                 name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
                 email: authUser.email,
                 phone: authUser.phone ?? '',
-                birth: authUser.birthdate,
-                gender: authUser.gender,
-                interest: authUser.interestedGender,
-                joined: authUser.joined,
+
+                birth: authUser.birthdate ?? '',
+                gender: authUser.gender ?? '',
+                interest: authUser.interestedGender ?? '',
+                joined: authUser.joined ?? '',
             }
             setUser(newUserData)
             setDraft(newUserData) // sync draft ด้วย
@@ -101,9 +102,11 @@ export default function ProfilePage() {
             setIsUpdating(true) // Set flag to prevent useEffect from overriding
 
             // Format birthdate to YYYY-MM-DD if it exists
-            let formattedBirthdate = draft.birth
+            let formattedBirthdate
+            if (draft) {
+                formattedBirthdate = draft.birth
+            }
             if (formattedBirthdate) {
-                // Remove any time component and keep only date part
                 formattedBirthdate = formattedBirthdate.split('T')[0]
             }
 
@@ -132,10 +135,11 @@ export default function ProfilePage() {
                 name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
                 email: updatedUserData.email,
                 phone: updatedUserData.phone ?? '',
-                birth: updatedUserData.birthdate,
-                gender: updatedUserData.gender,
-                interest: updatedUserData.interestedGender,
-                joined: updatedUserData.joined,
+
+                birth: updatedUserData.birthdate ?? '',
+                gender: updatedUserData.gender ?? '',
+                interest: updatedUserData.interestedGender ?? '',
+                joined: updatedUserData.joined ?? '',
             }
             setUser(newUserData)
             setDraft(newUserData)
@@ -251,10 +255,12 @@ export default function ProfilePage() {
                                     name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
                                     email: updatedUserData.email,
                                     phone: updatedUserData.phone ?? '',
-                                    birth: updatedUserData.birthdate,
-                                    gender: updatedUserData.gender,
-                                    interest: updatedUserData.interestedGender,
-                                    joined: updatedUserData.joined,
+
+                                    birth: updatedUserData.birthdate ?? '',
+                                    gender: updatedUserData.gender ?? '',
+                                    interest:
+                                        updatedUserData.interestedGender ?? '',
+                                    joined: updatedUserData.joined ?? '',
                                 }
                                 setUser(newUserData)
                                 setDraft(newUserData)

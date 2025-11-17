@@ -493,11 +493,11 @@ export default function BookingPage() {
                                         {provider.firstName} {provider.lastName}
                                     </div>
                                     <div className="text-sm text-gray-500">
-                                        {new Date().getFullYear() -
-                                            new Date(
-                                                provider.birthdate
-                                            ).getFullYear()}{' '}
-                                        ปี
+                                        {
+                                            provider.birthdate // ตรวจสอบว่า birthdate มีค่าหรือไม่
+                                                ? `${new Date().getFullYear() - new Date(provider.birthdate).getFullYear()} ปี`
+                                                : '? ปี' // แสดง '?' ถ้าไม่มีข้อมูล
+                                        }
                                     </div>
                                     <div className="flex items-center space-x-1 text-yellow-500">
                                         <span className="text-sm">

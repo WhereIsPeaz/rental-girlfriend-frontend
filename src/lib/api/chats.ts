@@ -21,7 +21,7 @@ export const listChats = async (): Promise<Chat[]> => {
         response.data
     )
 
-    return validated.data || []
+    return validated.data ?? []
 }
 
 /**
