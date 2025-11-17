@@ -1,0 +1,17 @@
+# Ignore files related to Docker itself
+.dockerignore
+Dockerfile
+Dockerfile.dev
+docker-compose.yml
+
+# Ignore local environment variables and git
+.env
+.git
+.github
+
+# Ignore build artifacts and modules
+node_modules
+.next
+
+# Ignore OS-specific files
+.DS_Store
