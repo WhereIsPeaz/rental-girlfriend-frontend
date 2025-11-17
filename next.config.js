@@ -5,6 +5,10 @@
 import './src/env.js'
 
 /** @type {import("next").NextConfig} */
-const config = {}
+const config = {
+  // This is the crucial part for the production Docker build!
+  output: 'standalone',
+  // ... any other config you have
+};
 
 export default config
