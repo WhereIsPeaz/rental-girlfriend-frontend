@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Star } from 'lucide-react'
-import { type Service, type Review } from '@/lib/localStorage'
+import type { Service, Review } from '@/lib/types'
 
 interface ServiceReviewsProps {
     service: Service

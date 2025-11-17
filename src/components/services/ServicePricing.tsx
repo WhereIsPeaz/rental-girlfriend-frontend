@@ -3,7 +3,7 @@
 import React from 'react'
 import { Calendar } from 'lucide-react'
 import ActionButton from '../shared/ActionButton'
-import { type Service } from '@/lib/localStorage'
+import type { Service } from '@/lib/types'
 
 interface ServicePricingProps {
     service: Service

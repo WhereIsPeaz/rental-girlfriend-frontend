@@ -3,7 +3,7 @@
 import React from 'react'
 import Card from '../Card'
 import LoadingSpinner from '../shared/LoadingSpinner'
-import { type Service, type User } from '@/lib/localStorage'
+import type { Service, User } from '@/lib/types'
 
 interface ServiceGridProps {
     services: Service[]
@@ -61,7 +61,7 @@ export default function ServiceGrid({
                         PriceD={service.priceDay}
                         Review={`จองแล้ว ${service.bookingCount} ครั้ง`}
                         ReviewCount={service.reviewCount}
-                        imgSrc={service.images[0] ?? provider.img}
+                        imgSrc={service.images[0] ?? provider.img ?? '/img/p2.jpg'}
                         buttonTitle="ดูโปรไฟล์"
                         Categories={service.categories}
                     />

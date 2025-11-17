@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Upload, FileText, Save, Trash2 } from 'lucide-react'
 import { Kanit } from 'next/font/google'
 import Image from 'next/image'
-import type { Service } from '@/lib/localStorage'
+import type { Service } from '@/lib/types'
 import { processImageFile, isBase64Image } from '@/lib/imageUtils'
 
 const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })

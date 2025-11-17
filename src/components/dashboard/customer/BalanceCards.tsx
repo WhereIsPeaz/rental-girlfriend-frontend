@@ -3,7 +3,7 @@
 import React from 'react'
 import { Wallet, TrendingUp, Calendar } from 'lucide-react'
 import StatCard from '../../shared/StatCard'
-import { type UserBalance, type Transaction } from '@/lib/localStorage'
+import type { UserBalance, Transaction } from '@/lib/types'
 
 interface BalanceCardsProps {
     balance: UserBalance | null

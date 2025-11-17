@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { type Service } from '@/lib/localStorage'
+import type { Service } from '@/lib/types'
 
 interface ServiceAboutProps {
     service: Service

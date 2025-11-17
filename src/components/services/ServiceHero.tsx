@@ -3,7 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { Clock, MapPin, Star } from 'lucide-react'
-import { type Service, type User } from '@/lib/localStorage'
+import type { Service, User } from '@/lib/types'
 
 interface ServiceHeroProps {
     service: Service
