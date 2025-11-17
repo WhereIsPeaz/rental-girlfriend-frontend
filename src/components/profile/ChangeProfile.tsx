@@ -230,8 +230,8 @@ export default function ChangeProfile({
                         {/* เลือกรูปจากตัวอย่าง */}
                         <div className="flex w-[344px] items-center justify-between">
                             <p className="text-[16px] leading-[140%] font-normal text-black">
-                                เลือกรูปจากตัวอย่าง
-                            </p>
+                            เลือกรูปจากตัวอย่าง
+                        </p>
                             {uploadError && (
                                 <p className="text-[11px] text-red-500">
                                     {uploadError}
@@ -265,10 +265,10 @@ export default function ChangeProfile({
                                                 {isConvertingAvatar ? (
                                                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                                 ) : (
-                                                    <Check
-                                                        strokeWidth={1.25}
-                                                        className="z-2 h-6 w-6 text-white"
-                                                    />
+                                                <Check
+                                                    strokeWidth={1.25}
+                                                    className="z-2 h-6 w-6 text-white"
+                                                />
                                                 )}
                                             </div>
                                         </div>
