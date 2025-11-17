@@ -559,6 +559,20 @@ export const addReview = (
     return newReview
 }
 
+// Delete single review by id
+export const deleteReview = (reviewId: string): void => {
+    const reviews = getReviews()
+    const reviewToDelete = reviews.find((r) => r.id === reviewId)
+
+    if (!reviewToDelete) return
+
+    const updatedReviews = reviews.filter((r) => r.id !== reviewId)
+    setReviews(updatedReviews)
+
+    // Update ratings for the service the review belonged to
+    updateServiceRating(reviewToDelete.serviceId)
+}
+
 export const updateServiceRating = (serviceId: string): void => {
     const reviews = getReviews()
     const serviceReviews = reviews.filter((r) => r.serviceId === serviceId)
@@ -1271,24 +1285,7 @@ export const initializeSampleData = (): void => {
     ]
 
     // สร้างข้อมูลรีวิวตัวอย่าง
-    const sampleReviews: Review[] = [
-        {
-            id: '1',
-            serviceId: '1',
-            customerId: '4',
-            rating: 5,
-            comment: 'บริการดีมาก เจนน่ารักและเป็นกันเองมาก',
-            createdAt: '2024-02-15T10:30:00Z',
-        },
-        {
-            id: '2',
-            serviceId: '2',
-            customerId: '4',
-            rating: 5,
-            comment: 'โบว์ช่วยเลือกของได้ดีมาก แนะนำร้านอาหารอร่อยด้วย',
-            createdAt: '2024-02-20T15:45:00Z',
-        },
-    ]
+
 
     // สร้างข้อมูลการจองตัวอย่าง
     const sampleBookings: Booking[] = [
@@ -1422,7 +1419,7 @@ export const initializeSampleData = (): void => {
     // บันทึกข้อมูลลง localStorage
     setUsers(sampleUsers)
     setServices(sampleServices)
-    setReviews(sampleReviews)
+   
     setBookings(sampleBookings)
     setBalances(sampleBalances)
     setTransactions(sampleTransactions)
