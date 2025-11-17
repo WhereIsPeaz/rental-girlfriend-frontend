@@ -44,9 +44,10 @@ export default function ServiceGrid({
                 if (!provider) return null
 
                 // คำนวณอายุจากวันเกิด
-                const birthYear = new Date(provider.birthdate).getFullYear()
-                const currentYear = new Date().getFullYear()
-                const age = currentYear - birthYear
+                const age = provider.birthdate
+                    ? new Date().getFullYear() -
+                      new Date(provider.birthdate).getFullYear()
+                    : 0
 
                 return (
                     <Card

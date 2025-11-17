@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Users API calls
 import api from '../api';
+import type { AxiosRequestConfig } from 'axios';
 import {
     type User,
     type UserBalance,
@@ -11,6 +12,11 @@ import {
     PaginatedResponseSchema,
     ApiResponseSchema,
 } from '../types';
+
+// Extend AxiosRequestConfig to include custom properties
+interface CustomAxiosRequestConfig extends AxiosRequestConfig {
+    suppressErrorToast?: boolean;
+}
 
 interface ListUsersParams {
     page?: number;
@@ -56,9 +62,10 @@ export const listUsers = async (
  * Get a single user by ID
  */
 export const getUser = async (id: string, options?: { silent?: boolean }): Promise<User> => {
-    const response = await api.get<ApiResponse<User>>(`/users/${id}`, {
+    const config: CustomAxiosRequestConfig = {
         suppressErrorToast: options?.silent,
-    } as any);
+    };
+    const response = await api.get<ApiResponse<User>>(`/users/${id}`, config);
     
     // Validate response
     const validated = ApiResponseSchema(UserSchema).parse(response.data);

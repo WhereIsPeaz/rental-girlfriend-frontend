@@ -12,8 +12,9 @@ interface ServiceHeroProps {
 }
 
 export default function ServiceHero({ service, provider }: ServiceHeroProps) {
-    const age =
-        new Date().getFullYear() - new Date(provider.birthdate).getFullYear()
+    const age = provider.birthdate
+        ? new Date().getFullYear() - new Date(provider.birthdate).getFullYear()
+        : null
 
     return (
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -32,10 +33,12 @@ export default function ServiceHero({ service, provider }: ServiceHeroProps) {
                         {provider.firstName} {provider.lastName}
                     </h1>
                     <div className="flex items-center space-x-4 text-sm">
-                        <div className="flex items-center space-x-1">
-                            <Clock className="h-4 w-4" />
-                            <span>{age} ปี</span>
-                        </div>
+                        {age && (
+                            <div className="flex items-center space-x-1">
+                                <Clock className="h-4 w-4" />
+                                <span>{age} ปี</span>
+                            </div>
+                        )}
                         <div className="flex items-center space-x-1">
                             <MapPin className="h-4 w-4" />
                             <span>กรุงเทพมหานคร</span>

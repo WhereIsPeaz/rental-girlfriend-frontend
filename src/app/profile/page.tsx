@@ -59,10 +59,10 @@ export default function ProfilePage() {
                 name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
                 email: authUser.email,
                 phone: authUser.phone ?? '',
-                birth: authUser.birthdate,
-                gender: authUser.gender,
-                interest: authUser.interestedGender,
-                joined: authUser.joined,
+                birth: authUser.birthdate ?? '',
+                gender: authUser.gender ?? '',
+                interest: authUser.interestedGender ?? '',
+                joined: authUser.joined ?? '',
             }
             setUser(newUserData)
             setDraft(newUserData) // sync draft ด้วย
@@ -104,7 +104,7 @@ export default function ProfilePage() {
             let formattedBirthdate = draft.birth
             if (formattedBirthdate) {
                 // Remove any time component and keep only date part
-                formattedBirthdate = formattedBirthdate.split('T')[0]
+                formattedBirthdate = formattedBirthdate.split('T')[0] ?? ''
             }
 
             // อัปเดตผ่าน API
@@ -132,10 +132,10 @@ export default function ProfilePage() {
                 name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
                 email: updatedUserData.email,
                 phone: updatedUserData.phone ?? '',
-                birth: updatedUserData.birthdate,
-                gender: updatedUserData.gender,
-                interest: updatedUserData.interestedGender,
-                joined: updatedUserData.joined,
+                birth: updatedUserData.birthdate ?? '',
+                gender: updatedUserData.gender ?? '',
+                interest: updatedUserData.interestedGender ?? '',
+                joined: updatedUserData.joined ?? '',
             }
             setUser(newUserData)
             setDraft(newUserData)
@@ -251,10 +251,11 @@ export default function ProfilePage() {
                                     name: `${updatedUserData.firstName || ''} ${updatedUserData.lastName || ''}`.trim(),
                                     email: updatedUserData.email,
                                     phone: updatedUserData.phone ?? '',
-                                    birth: updatedUserData.birthdate,
-                                    gender: updatedUserData.gender,
-                                    interest: updatedUserData.interestedGender,
-                                    joined: updatedUserData.joined,
+                                    birth: updatedUserData.birthdate ?? '',
+                                    gender: updatedUserData.gender ?? '',
+                                    interest:
+                                        updatedUserData.interestedGender ?? '',
+                                    joined: updatedUserData.joined ?? '',
                                 }
                                 setUser(newUserData)
                                 setDraft(newUserData)

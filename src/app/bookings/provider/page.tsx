@@ -76,9 +76,10 @@ const ProviderBookings: React.FC = () => {
                         try {
                         const customer = await usersApi.getUser(customerId, { silent: true })
                         customerData[customerId] = customer
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                         // Only log non-404 errors
-                        if (error?.response?.status !== 404) {
+                        const axiosError = error as { response?: { status?: number } }
+                        if (axiosError?.response?.status !== 404) {
                             console.error(
                                 `Error loading customer ${customerId}:`,
                                 error
