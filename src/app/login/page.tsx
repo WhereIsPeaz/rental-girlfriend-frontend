@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { AlertCircle } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
 
 export default function Home() {
@@ -10,17 +11,17 @@ export default function Home() {
         email: '',
         password: '',
     })
+    const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const { login, isAuthenticated, user } = useAuthContext()
     const router = useRouter()
 
-    // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated && user) {
             if (user.type === 'provider') {
                 router.push('/servicemanage')
             } else {
-                router.push('/')
+                router.push('/bookings')
             }
         }
     }, [isAuthenticated, user, router])
@@ -31,6 +32,7 @@ export default function Home() {
             ...prevData,
             [name]: value,
         }))
+        setError(null)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -40,17 +42,21 @@ export default function Home() {
         }
 
         setIsLoading(true)
-        const result = await login(formData.email, formData.password)
-        setIsLoading(false)
+        setError(null)
 
-        if (result.success && result.user) {
-            // Redirect based on user type
-            const userType = result.user.type
-            if (userType === 'provider') {
-                router.push('/servicemanage')
-            } else {
-                router.push('/')
+        try {
+            const result = await login(formData.email, formData.password)
+
+            if (!result.success || !result.user) {
+                setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง')
             }
+        } catch (err: unknown) {
+            let message = 'เกิดข้อผิดพลาด โปรดลองอีกครั้ง'
+            if (err instanceof Error) {
+                message = err.message
+            }
+            setError(message)
+            setIsLoading(false)
         }
     }
 
@@ -100,6 +106,12 @@ export default function Home() {
                 }}
                 className="m-4 mb-0 w-[384px] bg-white p-6 pb-0 shadow-xl"
             >
+                {error && (
+                    <div className="mb-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                        <span>{error}</span>
+                    </div>
+                )}
                 <div className="mb-4 flex justify-center gap-4">
                     <div className="w-full">
                         <label className="text-left text-[#212B36]">

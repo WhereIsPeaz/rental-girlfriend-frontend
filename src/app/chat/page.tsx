@@ -15,10 +15,10 @@ const kanit = Kanit({ subsets: ['thai', 'latin'], weight: ['400', '700'] })
 const getChatDisplayName = (chat: Chat, currentUserId: string): string => {
     if (chat.customerId === currentUserId) {
         // Current user is customer, show provider username
-        return chat.providerName || 'ผู้ใช้ที่ถูกลบ'
+        return chat.providerName ?? 'ผู้ใช้ที่ถูกลบ'
     } else {
         // Current user is provider, show customer username
-        return chat.customerName || 'ผู้ใช้ที่ถูกลบ'
+        return chat.customerName ?? 'ผู้ใช้ที่ถูกลบ'
     }
 }
 
@@ -29,10 +29,10 @@ const getChatProfileImage = (
 ): string | null => {
     if (chat.customerId === currentUserId) {
         // Current user is customer, show provider image
-        return chat.providerImg || null
+        return chat.providerImg ?? null
     } else {
         // Current user is provider, show customer image
-        return chat.customerImg || null
+        return chat.customerImg ?? null
     }
 }
 
@@ -103,7 +103,7 @@ const getBookingStatusText = (status: string): string => {
 // Helper to get last message text
 const getLastMessageText = (messages: ChatMessage[]): string => {
     if (!messages || messages.length === 0) return ''
-    return messages[messages.length - 1]?.content || ''
+    return messages[messages.length - 1]?.content ?? ''
 }
 
 // Helper to get last message time
@@ -120,7 +120,7 @@ const getLastMessageTime = (messages: ChatMessage[]): string => {
 // Helper to get chat subtitle (booking info or last message preview)
 const getChatSubtitle = (chat: Chat): string => {
     if (chat.bookingDetails) {
-        return `${chat.bookingDetails.serviceName || 'บริการ'} - ${formatBookingDate(chat.bookingDetails.bookingDate)}`
+        return `${chat.bookingDetails.serviceName ?? 'บริการ'} - ${formatBookingDate(chat.bookingDetails.bookingDate)}`
     }
     return getLastMessageText(chat.messages)
 }
@@ -291,6 +291,7 @@ export default function ChatPage() {
                                     >
                                         <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-pink-400 to-pink-500 text-sm font-bold text-white shadow-md">
                                             {profileImg ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
                                                 <img
                                                     src={profileImg}
                                                     alt={displayName}
@@ -369,6 +370,7 @@ export default function ChatPage() {
                                             selected,
                                             user.id
                                         ) ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
                                             <img
                                                 src={
                                                     getChatProfileImage(

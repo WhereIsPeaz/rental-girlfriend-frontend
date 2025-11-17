@@ -12,8 +12,9 @@ interface ServiceHeroProps {
 }
 
 export default function ServiceHero({ service, provider }: ServiceHeroProps) {
-    const age =
-        new Date().getFullYear() - new Date(provider.birthdate).getFullYear()
+    const age = provider.birthdate
+        ? new Date().getFullYear() - new Date(provider.birthdate).getFullYear()
+        : 23
 
     return (
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm">

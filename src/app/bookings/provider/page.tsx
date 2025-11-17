@@ -73,12 +73,17 @@ const ProviderBookings: React.FC = () => {
             if (missingCustomerIds.length > 0) {
                 // Silently handle missing customers
                 for (const customerId of missingCustomerIds) {
-                        try {
-                        const customer = await usersApi.getUser(customerId, { silent: true })
+                    try {
+                        const customer = await usersApi.getUser(customerId, {
+                            silent: true,
+                        })
                         customerData[customerId] = customer
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                         // Only log non-404 errors
-                        if (error?.response?.status !== 404) {
+                        const axiosError = error as {
+                            response?: { status?: number }
+                        }
+                        if (axiosError.response?.status !== 404) {
                             console.error(
                                 `Error loading customer ${customerId}:`,
                                 error
@@ -344,13 +349,10 @@ const ProviderBookings: React.FC = () => {
                                         }
                                     )
                                     // แจ้งเตือนว่าลูกค้าสามารถรีวิวได้แล้ว
-                                    toast(
-                                        'ลูกค้าสามารถรีวิวบริการได้แล้ว',
-                                        {
-                                            duration: 5000,
-                                            icon: '⭐',
-                                        }
-                                    )
+                                    toast('ลูกค้าสามารถรีวิวบริการได้แล้ว', {
+                                        duration: 5000,
+                                        icon: '⭐',
+                                    })
                                 } catch {
                                     toast.dismiss(processingToast)
                                     toast.error(
