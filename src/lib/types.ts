@@ -79,7 +79,7 @@ export interface Payment {
     customerId: string
     providerId: string
     amount: number
-    paymentMethod: 'credit_card' | 'promptpay' | 'bank_transfer'
+    paymentMethod: 'credit_card' | 'promptpay' | 'bank_transfer' | 'wallet'
     status:
         | 'pending'
         | 'completed'
@@ -224,14 +224,14 @@ export const PaymentSchema = z.object({
     customerId: z.string(),
     providerId: z.string(),
     amount: z.number(),
-    paymentMethod: z.enum(['credit_card', 'promptpay', 'bank_transfer']),
+    paymentMethod: z.enum(['credit_card', 'promptpay', 'bank_transfer', 'wallet']),
     status: z.enum(['pending', 'completed', 'failed', 'refunded', 'partially_refunded']),
-    transactionId: z.string().optional(),
-    refundAmount: z.number().optional(),
-    refundReason: z.string().optional(),
+    transactionId: z.string().nullish(),
+    refundAmount: z.number().nullish(),
+    refundReason: z.string().nullish(),
     createdAt: z.string(),
-    completedAt: z.string().optional(),
-    refundedAt: z.string().optional(),
+    completedAt: z.string().nullish(),
+    refundedAt: z.string().nullish(),
 });
 
 export const TransactionSchema = z.object({

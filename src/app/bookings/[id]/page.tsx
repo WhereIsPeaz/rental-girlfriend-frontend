@@ -63,19 +63,14 @@ export default function BookingDetailPage() {
                     return
                 }
 
-                // Check if booking belongs to current user
-                if (bookingData.customerId !== user.id) {
-                    toast.error('คุณไม่มีสิทธิ์เข้าถึงการจองนี้')
-                    router.push('/bookings')
-                    return
-                }
-
                 setBooking(bookingData)
 
                 // Load provider, service, and review data in parallel
                 const [providerData, serviceData, reviewsResponse] =
                     await Promise.all([
-                        usersApi.getUser(bookingData.providerId).catch(() => null),
+                        usersApi
+                            .getUser(bookingData.providerId)
+                            .catch(() => null),
                         servicesApi
                             .getService(bookingData.serviceId)
                             .catch(() => null),
@@ -206,9 +201,7 @@ export default function BookingDetailPage() {
                     <h1 className="mb-2 text-3xl font-bold text-gray-900">
                         รายละเอียดการจอง
                     </h1>
-                    <p className="text-gray-600">
-                        ข้อมูลการจองและรีวิวของคุณ
-                    </p>
+                    <p className="text-gray-600">ข้อมูลการจองและรีวิวของคุณ</p>
                 </div>
 
                 {/* Booking Card */}
@@ -246,13 +239,14 @@ export default function BookingDetailPage() {
                             <div>
                                 <p className="text-xs text-gray-500">วันที่</p>
                                 <p className="font-medium">
-                                    {new Date(
-                                        booking.date
-                                    ).toLocaleDateString('th-TH', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric',
-                                    })}
+                                    {new Date(booking.date).toLocaleDateString(
+                                        'th-TH',
+                                        {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        }
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -315,7 +309,7 @@ export default function BookingDetailPage() {
                                     {review ? (
                                         <button
                                             disabled
-                                            className="flex items-center space-x-2 rounded-lg bg-gray-300 px-4 py-2 text-gray-600 cursor-not-allowed"
+                                            className="flex cursor-not-allowed items-center space-x-2 rounded-lg bg-gray-300 px-4 py-2 text-gray-600"
                                         >
                                             <Star className="h-4 w-4" />
                                             <span>รีวิวแล้ว</span>
@@ -346,7 +340,8 @@ export default function BookingDetailPage() {
                                 <div className="flex items-center space-x-2">
                                     {Array.from({ length: 5 }, (_, i) => {
                                         const starValue = i + 1
-                                        const isFullStar = review.rating >= starValue
+                                        const isFullStar =
+                                            review.rating >= starValue
                                         const isHalfStar =
                                             review.rating >= starValue - 0.5 &&
                                             review.rating < starValue
@@ -362,7 +357,7 @@ export default function BookingDetailPage() {
                                                 />
                                                 {isHalfStar && (
                                                     <div
-                                                        className="absolute left-0 top-0 overflow-hidden"
+                                                        className="absolute top-0 left-0 overflow-hidden"
                                                         style={{ width: '50%' }}
                                                     >
                                                         <Star className="h-5 w-5 fill-current text-yellow-400" />
@@ -377,7 +372,9 @@ export default function BookingDetailPage() {
                                         ).toLocaleDateString('th-TH')}
                                     </span>
                                 </div>
-                                <p className="text-gray-700">{review.comment}</p>
+                                <p className="text-gray-700">
+                                    {review.comment}
+                                </p>
                             </div>
                         ) : (
                             <div className="py-8 text-center text-gray-500">
@@ -411,4 +408,3 @@ export default function BookingDetailPage() {
         </div>
     )
 }
-

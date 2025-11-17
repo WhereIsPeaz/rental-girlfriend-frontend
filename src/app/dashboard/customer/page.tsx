@@ -195,7 +195,15 @@ export default function CustomerDashboard() {
         }
     }
 
-    const getTransactionTypeText = (type: Transaction['type']) => {
+    const getTransactionTypeText = (
+        type: Transaction['type'],
+        note?: string
+    ) => {
+        // Check if it's a refund transaction with specific note
+        if (type === 'refund' && note?.includes('คืนเงิน')) {
+            return 'คืนเงิน'
+        }
+
         switch (type) {
             case 'payment':
                 return 'ชำระเงิน'
@@ -340,11 +348,13 @@ export default function CustomerDashboard() {
                                         <div>
                                             <p className="font-medium text-gray-900">
                                                 {getTransactionTypeText(
-                                                    transaction.type
+                                                    transaction.type,
+                                                    transaction.note
                                                 )}
                                             </p>
                                             <p className="text-sm text-gray-500">
-                                                {transaction.description}
+                                                {transaction.note ||
+                                                    transaction.description}
                                             </p>
                                             <p className="text-xs text-gray-400">
                                                 {new Date(
@@ -362,12 +372,17 @@ export default function CustomerDashboard() {
                                     <div className="text-right">
                                         <p
                                             className={`text-lg font-semibold ${
-                                                transaction.amount > 0
+                                                transaction.type === 'topup' ||
+                                                transaction.type === 'refund'
                                                     ? 'text-green-600'
                                                     : 'text-red-600'
                                             }`}
                                         >
-                                            {transaction.amount > 0 ? '+' : ''}฿
+                                            {transaction.type === 'topup' ||
+                                            transaction.type === 'refund'
+                                                ? '+'
+                                                : '-'}
+                                            ฿
                                             {Math.abs(
                                                 transaction.amount
                                             ).toLocaleString()}

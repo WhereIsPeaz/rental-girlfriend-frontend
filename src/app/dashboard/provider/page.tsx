@@ -52,7 +52,10 @@ export default function ProviderDashboard() {
                 await Promise.all([
                     usersApi.getUserBalance(user.id),
                     transactionsApi.listTransactions({ customerId: user.id }),
-                    bookingsApi.listBookings({ providerId: user.id, limit: 100 }),
+                    bookingsApi.listBookings({
+                        providerId: user.id,
+                        limit: 100,
+                    }),
                 ])
 
             setBalance(userBalance)
@@ -186,12 +189,28 @@ export default function ProviderDashboard() {
         }
     }
 
-    const getTransactionTypeText = (type: Transaction['type']) => {
+    const getTransactionTypeText = (
+        type: Transaction['type'],
+        note?: string,
+        method?: string
+    ) => {
+        // Check transaction type by method or note
+        if (type === 'topup') {
+            if (method === 'compensation' || note?.includes('ค่าชดเชย')) {
+                return 'ค่าชดเชย'
+            }
+            if (
+                method === 'earning' ||
+                note?.includes('รายได้จากการให้บริการ')
+            ) {
+                return 'รายได้'
+            }
+            return 'เติมเงิน'
+        }
+
         switch (type) {
             case 'payment':
                 return 'รายได้'
-            case 'topup':
-                return 'เติมเงิน'
             case 'refund':
                 return 'คืนเงิน'
             case 'withdrawal':
@@ -398,11 +417,14 @@ export default function ProviderDashboard() {
                                         <div>
                                             <p className="font-medium text-gray-900">
                                                 {getTransactionTypeText(
-                                                    transaction.type
+                                                    transaction.type,
+                                                    transaction.note,
+                                                    transaction.method
                                                 )}
                                             </p>
                                             <p className="text-sm text-gray-500">
-                                                {transaction.description}
+                                                {transaction.note ||
+                                                    transaction.description}
                                             </p>
                                             <p className="text-xs text-gray-400">
                                                 {new Date(
@@ -420,12 +442,17 @@ export default function ProviderDashboard() {
                                     <div className="text-right">
                                         <p
                                             className={`text-lg font-semibold ${
-                                                transaction.amount > 0
+                                                transaction.type === 'topup' ||
+                                                transaction.type === 'refund'
                                                     ? 'text-green-600'
                                                     : 'text-red-600'
                                             }`}
                                         >
-                                            {transaction.amount > 0 ? '+' : ''}฿
+                                            {transaction.type === 'topup' ||
+                                            transaction.type === 'refund'
+                                                ? '+'
+                                                : '-'}
+                                            ฿
                                             {Math.abs(
                                                 transaction.amount
                                             ).toLocaleString()}
