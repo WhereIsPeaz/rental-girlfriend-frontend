@@ -86,12 +86,12 @@ export interface Payment {
         | 'failed'
         | 'refunded'
         | 'partially_refunded'
-    transactionId?: string
-    refundAmount?: number
-    refundReason?: string
+    transactionId?: string | null
+    refundAmount?: number | null
+    refundReason?: string | null
     createdAt: string
-    completedAt?: string
-    refundedAt?: string
+    completedAt?: string | null
+    refundedAt?: string | null
 }
 
 // Transaction types
@@ -119,8 +119,8 @@ export interface Withdrawal {
     accountName: string
     status: 'pending' | 'completed' | 'failed'
     requestedAt: string
-    completedAt?: string
-    failureReason?: string
+    completedAt?: string | null
+    failureReason?: string | null
 }
 
 // UserBalance types

@@ -186,7 +186,7 @@ export const validateBase64Image = (
     // Check data URI format: data:image/[type];base64,[base64data]
     const dataUriRegex =
         /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/
-    const match = trimmed.match(dataUriRegex)
+    const match = dataUriRegex.exec(trimmed)
 
     if (!match) {
         return {

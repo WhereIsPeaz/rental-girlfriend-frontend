@@ -20,7 +20,7 @@ export default function ReviewModal({
     onClose,
     bookingId,
     serviceId,
-    customerId,
+    customerId: _customerId,
     onSubmit,
 }: ReviewModalProps) {
     const [rating, setRating] = useState(0)
