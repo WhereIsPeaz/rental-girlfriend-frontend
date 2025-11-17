@@ -19,6 +19,7 @@ interface ListBookingsParams {
     dateTo?: string;
     page?: number;
     limit?: number;
+    includeDetails?: boolean;
 }
 
 interface CreateBookingRequest {

@@ -134,8 +134,8 @@ export default function PersonalInfoEdit({
                             วันเกิด
                         </p>
                         <input
-                            type="text"
-                            value={draft.birth}
+                            type="date"
+                            value={draft.birth ? draft.birth.split('T')[0] : ''}
                             onChange={(e) =>
                                 handleDraftChange('birth', e.target.value)
                             }

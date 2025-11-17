@@ -34,6 +34,10 @@ api.interceptors.response.use(
         return response
   },
   (error: AxiosError) => {
+    // Check if error toasts should be suppressed
+    const config = error.config as any
+    const suppressToast = config?.suppressErrorToast === true
+
     // Handle different error scenarios
     if (error.response) {
             const status = error.response.status
@@ -50,7 +54,9 @@ api.interceptors.response.use(
                             currentPath !== '/login' &&
                             currentPath !== '/register'
                         ) {
+                            if (!suppressToast) {
                             toast.error('กรุณาเข้าสู่ระบบอีกครั้ง')
+                            }
                             window.location.href = '/login'
             }
           }
@@ -58,35 +64,45 @@ api.interceptors.response.use(
 
         case 403:
           // Forbidden
+                    if (!suppressToast) {
                     toast.error('คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้')
+                    }
                     break
 
         case 404:
           // Not found
+                    if (!suppressToast) {
                     toast.error(data?.message || 'ไม่พบข้อมูลที่ต้องการ')
+                    }
                     break
 
         case 500:
           // Server error
+                    if (!suppressToast) {
                     toast.error(
                         'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง'
                     )
+                    }
                     break
 
         default:
           // Other errors
-          if (data?.message) {
+          if (data?.message && !suppressToast) {
                         toast.error(data.message)
           }
       }
     } else if (error.request) {
       // Network error - no response received
+            if (!suppressToast) {
             toast.error(
                 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
             )
+            }
     } else {
       // Other errors
+            if (!suppressToast) {
             toast.error('เกิดข้อผิดพลาดที่ไม่คาดคิด')
+            }
     }
 
         return Promise.reject(error)

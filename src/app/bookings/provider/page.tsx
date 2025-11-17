@@ -15,11 +15,14 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext'
 import * as bookingsApi from '@/lib/api/bookings'
 import * as usersApi from '@/lib/api/users'
+import * as chatsApi from '@/lib/api/chats'
 import type { User as UserType, Booking } from '@/lib/types'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 const ProviderBookings: React.FC = () => {
+    const router = useRouter()
     const { user, isAuthenticated, isProvider } = useAuthContext()
     const [bookings, setBookings] = useState<Booking[]>([])
     const [customers, setCustomers] = useState<Record<string, UserType>>({})
@@ -31,34 +34,72 @@ const ProviderBookings: React.FC = () => {
         if (!user || user.type !== 'provider') return
 
         try {
-            // Get bookings from API
+            // Get bookings from API with customer details included
             const response = await bookingsApi.listBookings({
                 providerId: user.id,
                 limit: 100,
+                includeDetails: true,
             })
 
             setBookings(response.data)
 
-            // Load customer data
+            // Extract customer data from booking details
             const customerData: Record<string, UserType> = {}
 
-            // Fetch customer details for each booking
-            await Promise.all(
-                response.data.map(async (booking) => {
-                    if (!customerData[booking.customerId]) {
-                        try {
-                            const customer = await usersApi.getUser(
-                                booking.customerId
-                            )
-                            customerData[booking.customerId] = customer
-                        } catch (error) {
-                            console.error('Error loading customer:', error)
-                        }
+            response.data.forEach((booking) => {
+                if (booking.customerDetails) {
+                    customerData[booking.customerId] = {
+                        id: booking.customerDetails.id,
+                        email: booking.customerDetails.email,
+                        username: booking.customerDetails.username,
+                        firstName: booking.customerDetails.firstName,
+                        lastName: booking.customerDetails.lastName,
+                        img: booking.customerDetails.img,
+                        type: 'customer',
+                        createdAt: '',
+                        updatedAt: '',
                     }
-                })
-            )
+                }
+            })
 
             setCustomers(customerData)
+
+            // Fetch missing customer data if any (fallback for backward compatibility)
+            const missingCustomerIds = response.data
+                .filter((booking) => !customerData[booking.customerId])
+                .map((booking) => booking.customerId)
+                .filter((id, index, self) => self.indexOf(id) === index) // unique
+
+            if (missingCustomerIds.length > 0) {
+                // Silently handle missing customers
+                for (const customerId of missingCustomerIds) {
+                        try {
+                        const customer = await usersApi.getUser(customerId, { silent: true })
+                        customerData[customerId] = customer
+                    } catch (error: any) {
+                        // Only log non-404 errors
+                        if (error?.response?.status !== 404) {
+                            console.error(
+                                `Error loading customer ${customerId}:`,
+                                error
+                            )
+                        }
+                        // Set placeholder for missing/deleted customer (don't show error to user)
+                        customerData[customerId] = {
+                            id: customerId,
+                            email: 'deleted@example.com',
+                            username: 'ผู้ใช้ที่ถูกลบ',
+                            firstName: 'ผู้ใช้',
+                            lastName: 'ที่ถูกลบ',
+                            type: 'customer',
+                            createdAt: '',
+                            updatedAt: '',
+                        }
+                    }
+                }
+
+                setCustomers({ ...customerData })
+            }
         } catch (error) {
             console.error('Error loading bookings:', error)
             toast.error('ไม่สามารถโหลดข้อมูลการจองได้')
@@ -336,12 +377,17 @@ const ProviderBookings: React.FC = () => {
         )
     }
 
-    const handleSendMessage = (_customerId: string) => {
-        toast.success('เปิดหน้าแชท', {
-            duration: 2000,
-        })
-        // Here you would navigate to chat page
-        // router.push(`/chat/${customerId}`)
+    const handleSendMessage = async (bookingId: string) => {
+        try {
+            // Create or get existing chat for this booking
+            await chatsApi.createChat(bookingId)
+            // Navigate to chat page
+            router.push('/chat')
+            toast.success('เปิดหน้าแชท')
+        } catch (error) {
+            console.error('Error opening chat:', error)
+            toast.error('ไม่สามารถเปิดหน้าแชทได้')
+        }
     }
 
     if (!isAuthenticated) {
@@ -667,7 +713,7 @@ const ProviderBookings: React.FC = () => {
                                             <button
                                                 onClick={() =>
                                                     handleSendMessage(
-                                                        booking.customerId
+                                                        booking.id
                                                     )
                                                 }
                                                 className="flex items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"

@@ -9,15 +9,15 @@ export interface User {
     password?: string // Optional since API doesn't return it
     firstName: string
     lastName: string
-    birthdate: string
+    birthdate?: string
     idCard?: string
     phone?: string
-    gender: string
-    interestedGender: string
+    gender?: string
+    interestedGender?: string
     type: 'customer' | 'provider' | 'admin'
     img?: string
-    joined: string
-    verified: boolean
+    joined?: string
+    verified?: boolean
     createdAt?: string
     updatedAt?: string
 }
@@ -70,6 +70,25 @@ export interface Booking {
     refundAmount?: number
     createdAt: string
     updatedAt: string
+    // Optional fields when includeDetails=true
+    providerDetails?: {
+        id: string
+        firstName: string
+        lastName: string
+        username: string
+        email: string
+        img?: string
+    }
+    customerDetails?: {
+        id: string
+        firstName: string
+        lastName: string
+        username: string
+        email: string
+        img?: string
+    }
+    hasReview?: boolean
+    chatId?: string | null
 }
 
 // Payment types
@@ -133,6 +152,37 @@ export interface UserBalance {
     lastUpdated: string
 }
 
+// Chat Message types
+export interface ChatMessage {
+    senderId: string
+    senderType: 'customer' | 'provider'
+    content: string
+    sentAt: string
+}
+
+// Chat types
+export interface Chat {
+    id: string
+    bookingId: string
+    customerId: string
+    providerId: string
+    customerName?: string | null
+    providerName?: string | null
+    customerImg?: string | null
+    providerImg?: string | null
+    bookingDetails?: {
+        bookingDate: string
+        startTime: string
+        endTime: string
+        serviceName: string | null
+        status: string
+        totalAmount: number
+    }
+    messages: ChatMessage[]
+    createdAt?: string
+    updatedAt?: string
+}
+
 // API Response types
 export interface ApiResponse<T> {
     success: boolean
@@ -158,15 +208,15 @@ export const UserSchema = z.object({
     username: z.string(),
     firstName: z.string(),
     lastName: z.string(),
-    birthdate: z.string(),
+    birthdate: z.string().optional(),
     idCard: z.string().optional(),
     phone: z.string().optional(),
-    gender: z.string(),
-    interestedGender: z.string(),
+    gender: z.string().optional(),
+    interestedGender: z.string().optional(),
     type: z.enum(['customer', 'provider', 'admin']),
     img: z.string().optional(),
-    joined: z.string(),
-    verified: z.boolean(),
+    joined: z.string().optional(),
+    verified: z.boolean().optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
 })
@@ -221,6 +271,25 @@ export const BookingSchema = z.object({
     refundAmount: z.number().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
+    // Optional fields when includeDetails=true
+    providerDetails: z.object({
+        id: z.string(),
+        firstName: z.string(),
+        lastName: z.string(),
+        username: z.string(),
+        email: z.string(),
+        img: z.string().optional(),
+    }).optional(),
+    customerDetails: z.object({
+        id: z.string(),
+        firstName: z.string(),
+        lastName: z.string(),
+        username: z.string(),
+        email: z.string(),
+        img: z.string().optional(),
+    }).optional(),
+    hasReview: z.boolean().optional(),
+    chatId: z.string().nullish(),
 })
 
 export const PaymentSchema = z.object({
@@ -284,6 +353,35 @@ export const UserBalanceSchema = z.object({
     totalEarnings: z.number(),
     totalSpent: z.number(),
     lastUpdated: z.string(),
+})
+
+export const ChatMessageSchema = z.object({
+    senderId: z.string(),
+    senderType: z.enum(['customer', 'provider']),
+    content: z.string(),
+    sentAt: z.string(),
+})
+
+export const ChatSchema = z.object({
+    id: z.string(),
+    bookingId: z.string(),
+    customerId: z.string(),
+    providerId: z.string(),
+    customerName: z.string().nullish(),
+    providerName: z.string().nullish(),
+    customerImg: z.string().nullish(),
+    providerImg: z.string().nullish(),
+    bookingDetails: z.object({
+        bookingDate: z.string(),
+        startTime: z.string(),
+        endTime: z.string(),
+        serviceName: z.string().nullable(),
+        status: z.string(),
+        totalAmount: z.number(),
+    }).optional(),
+    messages: z.array(ChatMessageSchema),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
 })
 
 // API Response schemas

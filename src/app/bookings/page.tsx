@@ -14,13 +14,16 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import * as bookingsApi from '@/lib/api/bookings'
 import * as usersApi from '@/lib/api/users'
 import * as reviewsApi from '@/lib/api/reviews'
+import * as chatsApi from '@/lib/api/chats'
 import type { User as UserType, Booking } from '@/lib/types'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import ReviewModal from '@/components/ReviewModal'
 
 const Bookings: React.FC = () => {
     const { user, isAuthenticated } = useAuthContext()
+    const router = useRouter()
     const [bookings, setBookings] = useState<Booking[]>([])
     const [providers, setProviders] = useState<Record<string, UserType>>({})
     const [activeTab, setActiveTab] = useState<
@@ -38,56 +41,70 @@ const Bookings: React.FC = () => {
         if (!user) return
 
         try {
-            // Get bookings from API
+            // Get bookings from API with includeDetails=true to reduce API calls
             const response =
                 user.type === 'customer'
                     ? await bookingsApi.listBookings({
                           customerId: user.id,
                           limit: 100,
+                          includeDetails: true, // This will include provider details and review status
                       })
                     : { data: [] }
 
             setBookings(response.data)
 
-            // Load provider data
+            // Extract provider data from booking details (no additional API calls needed!)
             const userData: Record<string, UserType> = {}
+            const reviewedBookingIds = new Set<string>()
 
-            // Fetch provider details for each booking
+            response.data.forEach((booking) => {
+                // Use providerDetails if available, otherwise fetch separately
+                if (booking.providerDetails) {
+                    userData[booking.providerId] = {
+                        id: booking.providerDetails.id,
+                        email: booking.providerDetails.email,
+                        username: booking.providerDetails.username,
+                        firstName: booking.providerDetails.firstName,
+                        lastName: booking.providerDetails.lastName,
+                        img: booking.providerDetails.img,
+                        // Required fields with placeholder values
+                        birthdate: '',
+                        gender: '',
+                        interestedGender: '',
+                        type: 'provider' as const,
+                        joined: '',
+                        verified: false,
+                    }
+                }
+
+                // Use hasReview flag if available
+                if (booking.hasReview) {
+                    reviewedBookingIds.add(booking.id)
+                }
+            })
+
+            setProviders(userData)
+            setBookingsWithReviews(reviewedBookingIds)
+
+            // Only fetch missing provider data if needed
+            const missingProviderIds = response.data
+                .filter((booking) => !userData[booking.providerId])
+                .map((booking) => booking.providerId)
+                .filter((id, index, self) => self.indexOf(id) === index) // unique
+
+            if (missingProviderIds.length > 0) {
             await Promise.all(
-                response.data.map(async (booking) => {
-                    if (!userData[booking.providerId]) {
+                    missingProviderIds.map(async (providerId) => {
                         try {
-                            const provider = await usersApi.getUser(
-                                booking.providerId
-                            )
-                            userData[booking.providerId] = provider
+                            const provider = await usersApi.getUser(providerId)
+                            userData[providerId] = provider
                         } catch (error) {
                             console.error('Error loading provider:', error)
                         }
-                    }
                 })
             )
-
-            setProviders(userData)
-
-            // Check which bookings have reviews
-            const reviewedBookingIds = new Set<string>()
-            await Promise.all(
-                response.data.map(async (booking) => {
-                    try {
-                        const reviews = await reviewsApi.listReviews({
-                            bookingId: booking.id,
-                            limit: 1,
-                        })
-                        if (reviews.data.length > 0) {
-                            reviewedBookingIds.add(booking.id)
-                        }
-                    } catch (error) {
-                        console.error('Error checking review:', error)
+                setProviders((prev) => ({ ...prev, ...userData }))
                     }
-                })
-            )
-            setBookingsWithReviews(reviewedBookingIds)
         } catch (error) {
             console.error('Error loading bookings:', error)
             toast.error('ไม่สามารถโหลดข้อมูลการจองได้')
@@ -264,12 +281,20 @@ const Bookings: React.FC = () => {
         void loadBookings()
     }
 
-    const handleSendMessage = (_userId: string) => {
+    const handleSendMessage = async (bookingId: string) => {
+        try {
+            // Create or get existing chat for this booking
+            await chatsApi.createChat(bookingId)
+            
+            // Navigate to chat page
+            router.push('/chat')
         toast.success('เปิดหน้าแชท', {
             duration: 2000,
         })
-        // Here you would navigate to chat page
-        // router.push(`/chat/${userId}`)
+        } catch (error) {
+            console.error('Error creating chat:', error)
+            toast.error('ไม่สามารถเปิดแชทได้ กรุณาลองใหม่อีกครั้ง')
+        }
     }
 
     if (!isAuthenticated) {
@@ -479,8 +504,8 @@ const Bookings: React.FC = () => {
                                         <div className="flex items-center space-x-3">
                                             <button
                                                 onClick={() =>
-                                                    handleSendMessage(
-                                                        provider.id
+                                                    void handleSendMessage(
+                                                        booking.id
                                                     )
                                                 }
                                                 className="flex items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"

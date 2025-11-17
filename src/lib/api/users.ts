@@ -55,8 +55,10 @@ export const listUsers = async (
 /**
  * Get a single user by ID
  */
-export const getUser = async (id: string): Promise<User> => {
-    const response = await api.get<ApiResponse<User>>(`/users/${id}`);
+export const getUser = async (id: string, options?: { silent?: boolean }): Promise<User> => {
+    const response = await api.get<ApiResponse<User>>(`/users/${id}`, {
+        suppressErrorToast: options?.silent,
+    } as any);
     
     // Validate response
     const validated = ApiResponseSchema(UserSchema).parse(response.data);

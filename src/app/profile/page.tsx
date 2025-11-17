@@ -100,6 +100,13 @@ export default function ProfilePage() {
         try {
             setIsUpdating(true) // Set flag to prevent useEffect from overriding
 
+            // Format birthdate to YYYY-MM-DD if it exists
+            let formattedBirthdate = draft.birth
+            if (formattedBirthdate) {
+                // Remove any time component and keep only date part
+                formattedBirthdate = formattedBirthdate.split('T')[0]
+            }
+
             // อัปเดตผ่าน API
             const updatedUserData = await usersApi.updateUser(authUser.id, {
                 firstName: firstName ?? '',
@@ -107,7 +114,7 @@ export default function ProfilePage() {
                 username: draft.username,
                 email: draft.email,
                 phone: draft.phone,
-                birthdate: draft.birth,
+                birthdate: formattedBirthdate,
                 gender: draft.gender,
                 interestedGender: draft.interest,
                 img: draft.img,
@@ -214,23 +221,23 @@ export default function ProfilePage() {
                     tempImg={tempImg}
                     setChangeProfile={() => setChangeProfile(false)}
                     setTempImg={(url) => setTempImg(url)}
-                saveProfile={async () => {
+                    saveProfile={async () => {
                         if (tempImg && authUser) {
                             try {
                                 // Validate base64 before sending
                                 const validation = validateBase64Image(tempImg)
                                 if (!validation.valid) {
-                                    toast.error(`รูปภาพไม่ถูกต้อง: ${validation.error}`)
+                                    toast.error(
+                                        `รูปภาพไม่ถูกต้อง: ${validation.error}`
+                                    )
                                     return
                                 }
 
-                            // อัปเดตผ่าน API
-                            const updatedUserData = await usersApi.updateUser(
-                                    authUser.id,
-                                    {
+                                // อัปเดตผ่าน API
+                                const updatedUserData =
+                                    await usersApi.updateUser(authUser.id, {
                                         img: tempImg,
-                                    }
-                                )
+                                    })
 
                                 // อัปเดต context
                                 updateUser(updatedUserData)

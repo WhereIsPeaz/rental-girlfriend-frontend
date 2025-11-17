@@ -11,30 +11,26 @@ import {
     LogOut,
     Calendar,
     BarChart3,
+    MessageCircle,
 } from 'lucide-react'
 
 export default function Alreadylogin() {
-    const [messageCnt] = useState(4)
     const [showDropdown, setShowDropdown] = useState(false)
     const { user, logout, isProvider } = useAuthContext()
 
-    const messageCntDisplay = messageCnt > 9 ? '9+' : messageCnt
-
     return (
         <div className="flex items-center gap-[16px]">
-            <button className="relative cursor-pointer transition-all duration-300 hover:scale-105">
+            <Link 
+                href="/chat"
+                className="relative cursor-pointer transition-all duration-300 hover:scale-105"
+            >
                 <Image
                     src="/img/message.svg"
                     alt="message"
                     width={28}
                     height={28}
                 />
-                {messageCnt > 0 && (
-                    <div className="absolute -top-0 -right-1 flex h-[15px] w-[14px] items-center justify-center rounded-[100px] bg-[#ef4444] text-[10px] text-white">
-                        {messageCntDisplay}
-                    </div>
-                )}
-            </button>
+            </Link>
 
             {/* <button className="relative cursor-pointer transition-all duration-300 hover:scale-105">
                 <Image
@@ -105,6 +101,15 @@ export default function Alreadylogin() {
                         >
                             <Calendar className="h-4 w-4" />
                             การจอง
+                        </Link>
+
+                        <Link
+                            href="/chat"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setShowDropdown(false)}
+                        >
+                            <MessageCircle className="h-4 w-4" />
+                            แชท
                         </Link>
 
                         {isProvider && (
