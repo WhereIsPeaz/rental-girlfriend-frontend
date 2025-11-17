@@ -1,6 +1,8 @@
 # ---- Base Stage ----
 # Use a slim Node.js 20 image
 FROM node:20-alpine AS base
+# Fail build on any command failure
+SHELL ["/bin/sh", "-e", "-c"]
 WORKDIR /app
 
 # ---- Dependencies Stage ----
