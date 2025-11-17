@@ -227,14 +227,15 @@ const Bookings: React.FC = () => {
         rating: number
         comment: string
     }) => {
-        const bookingToReview = bookings.find((b) => b.id === data.bookingId)
-        if (!bookingToReview) {
+        // const bookingToReview = bookings.find((b) => b.id === data.bookingId)
+        // console.log(bookingToReview)
+        if (!data.bookingId) {
             toast.error('ไม่พบรายการจองนี้', { duration: 3000 })
             return
         }
 
         const requestBody = {
-            serviceId: bookingToReview.serviceId,
+            bookingId: data.bookingId,
             rating: data.rating,
             comment: data.comment,
             customerId: user?.id,
