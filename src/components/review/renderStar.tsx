@@ -1,4 +1,4 @@
-import { Star, StarHalf, X } from 'lucide-react'
+import { Star, StarHalf } from 'lucide-react'
 export default function renderStarIcon(
     starIndex: number,
     currentRating: number

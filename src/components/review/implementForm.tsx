@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState } from 'react'
 import renderStarIcon from './renderStar'
 import { X } from 'lucide-react'
 
