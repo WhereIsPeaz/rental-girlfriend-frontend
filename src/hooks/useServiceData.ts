@@ -1,15 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-    getServices,
-    getUsers,
-    getReviews,
-    initializeSampleData,
-    type Service,
-    type User,
-    type Review,
-} from '@/lib/localStorage'
+import * as servicesApi from '@/lib/api/services'
+import * as usersApi from '@/lib/api/users'
+import * as reviewsApi from '@/lib/api/reviews'
+import type { Service, User, Review } from '@/lib/types'
 
 interface UseServiceDataReturn {
     service: Service | null
@@ -37,15 +32,8 @@ export function useServiceData(serviceId: string | null): UseServiceDataReturn {
         setError(null)
 
         try {
-            // Initialize sample data if needed
-            initializeSampleData()
-
-            // Simulate API delay for service data loading
-            await new Promise((resolve) => setTimeout(resolve, 600))
-
-            // Load service data
-            const services = getServices()
-            const foundService = services.find((s) => s.id === serviceId)
+            // Load service data from API
+            const foundService = await servicesApi.getService(serviceId)
 
             if (!foundService) {
                 setError('Service not found')
@@ -54,19 +42,14 @@ export function useServiceData(serviceId: string | null): UseServiceDataReturn {
 
             setService(foundService)
 
-            // Load provider data
-            const users = getUsers()
-            const foundProvider = users.find(
-                (u) => u.id === foundService.providerId
-            )
-            setProvider(foundProvider ?? null)
+            // Load provider data and reviews in parallel
+            const [foundProvider, reviewsResponse] = await Promise.all([
+                usersApi.getUser(foundService.providerId).catch(() => null),
+                reviewsApi.listReviews({ serviceId, limit: 100 }),
+            ])
 
-            // Load reviews for this service
-            const allReviews = getReviews()
-            const serviceReviews = allReviews.filter(
-                (r) => r.serviceId === serviceId
-            )
-            setReviews(serviceReviews)
+            setProvider(foundProvider)
+            setReviews(reviewsResponse.data)
         } catch (err) {
             console.error('Error loading service data:', err)
             setError('Failed to load service data')

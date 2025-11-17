@@ -7,12 +7,9 @@ import React, {
     useCallback,
     type ReactNode,
 } from 'react'
-import {
-    getServices,
-    getUsers,
-    type Service,
-    type User,
-} from '@/lib/localStorage'
+import * as servicesApi from '@/lib/api/services'
+import * as usersApi from '@/lib/api/users'
+import type { Service, User } from '@/lib/types'
 
 interface FilterState {
     query: string
@@ -75,11 +72,14 @@ export function ServicesProvider({
         setLoading(true)
 
         try {
-            // Simulate API delay for services data loading
-            await new Promise((resolve) => setTimeout(resolve, 600))
+            // Fetch services and users from API
+            const [servicesResponse, usersResponse] = await Promise.all([
+                servicesApi.listServices({ active: true, limit: 100 }),
+                usersApi.listUsers({ limit: 100 }),
+            ])
 
-            const services = getServices().filter((service) => service.active)
-            const users = getUsers().filter((user) => user.type === 'provider')
+            const services = servicesResponse.data.filter((service) => service.active)
+            const users = usersResponse.data.filter((user) => user.type === 'provider')
 
             setAllServices(services)
             setAllProviders(users)

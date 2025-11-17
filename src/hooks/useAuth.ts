@@ -1,15 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-    getCurrentUser,
-    setCurrentUser,
-    loginUser,
-    registerUser,
-    logoutUser,
-    initializeSampleData,
-} from '@/lib/localStorage'
-import type { User } from '@/lib/localStorage'
+import * as authApi from '@/lib/api/auth'
+import { getToken, isTokenValid } from '@/lib/auth'
+import type { User } from '@/lib/types'
 import toast from 'react-hot-toast'
 
 export const useAuth = () => {
@@ -17,13 +11,23 @@ export const useAuth = () => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        // Initialize sample data on first load
-        initializeSampleData()
+        // Try to get current user from API if token exists
+        const loadUser = async () => {
+            try {
+                const token = getToken()
+                if (token && isTokenValid()) {
+                    const currentUser = await authApi.getMe()
+                    setUser(currentUser)
+                }
+            } catch (error) {
+                console.error('Failed to load user:', error)
+                // Token might be invalid, will be handled by axios interceptor
+            } finally {
+                setLoading(false)
+            }
+        }
 
-        // Get current user from localStorage
-        const currentUser = getCurrentUser()
-        setUser(currentUser)
-        setLoading(false)
+        void loadUser()
     }, [])
 
     const login = async (
@@ -33,10 +37,7 @@ export const useAuth = () => {
         try {
             setLoading(true)
 
-            // Simulate API delay for authentication
-            await new Promise((resolve) => setTimeout(resolve, 1500))
-
-            const loggedInUser = loginUser(email, password)
+            const loggedInUser = await authApi.login({ email, password })
             setUser(loggedInUser)
             toast.success(`ยินดีต้อนรับ ${loggedInUser.firstName}!`)
             return { success: true, user: loggedInUser }
@@ -58,10 +59,8 @@ export const useAuth = () => {
         try {
             setLoading(true)
 
-            // Simulate API delay for registration
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-
-            const newUser = registerUser(userData)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+            const newUser = await authApi.register(userData as any)
             setUser(newUser)
             toast.success(
                 `สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${newUser.firstName}`
@@ -80,14 +79,13 @@ export const useAuth = () => {
     }
 
     const logout = () => {
-        logoutUser()
+        authApi.logout()
         setUser(null)
         toast.success('ออกจากระบบเรียบร้อยแล้ว')
     }
 
     const updateUser = (updatedUser: User) => {
         setUser(updatedUser)
-        setCurrentUser(updatedUser)
     }
 
     return {
