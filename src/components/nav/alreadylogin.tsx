@@ -97,7 +97,7 @@ export default function Alreadylogin() {
 
                         <Link
                             href={
-                                isProvider ? '/booking/provider' : '/booking'
+                                isProvider ? '/bookings/provider' : '/bookings'
                             }
                             className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setShowDropdown(false)}

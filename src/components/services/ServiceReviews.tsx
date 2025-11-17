@@ -39,16 +39,34 @@ export default function ServiceReviews({
                         >
                             <div className="mb-2 flex items-center justify-between">
                                 <div className="flex items-center space-x-1">
-                                    {Array.from({ length: 5 }, (_, i) => (
-                                        <Star
-                                            key={i}
-                                            className={`h-4 w-4 ${
-                                                i < review.rating
-                                                    ? 'fill-current text-yellow-400'
-                                                    : 'text-gray-300'
-                                            }`}
-                                        />
-                                    ))}
+                                    {Array.from({ length: 5 }, (_, i) => {
+                                        const starValue = i + 1
+                                        const isFullStar =
+                                            review.rating >= starValue
+                                        const isHalfStar =
+                                            review.rating >= starValue - 0.5 &&
+                                            review.rating < starValue
+
+                                        return (
+                                            <div key={i} className="relative">
+                                                <Star
+                                                    className={`h-4 w-4 ${
+                                                        isFullStar
+                                                            ? 'fill-current text-yellow-400'
+                                                            : 'text-gray-300'
+                                                    }`}
+                                                />
+                                                {isHalfStar && (
+                                                    <div
+                                                        className="absolute top-0 left-0 overflow-hidden"
+                                                        style={{ width: '50%' }}
+                                                    >
+                                                        <Star className="h-4 w-4 fill-current text-yellow-400" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                                 <span className="text-sm text-gray-500">
                                     {new Date(

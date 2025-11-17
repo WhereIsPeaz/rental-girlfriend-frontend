@@ -317,6 +317,14 @@ const ProviderBookings: React.FC = () => {
                                             duration: 4000,
                                         }
                                     )
+                                    // แจ้งเตือนว่าลูกค้าสามารถรีวิวได้แล้ว
+                                    toast(
+                                        'ลูกค้าสามารถรีวิวบริการได้แล้ว',
+                                        {
+                                            duration: 5000,
+                                            icon: '⭐',
+                                        }
+                                    )
                                 } catch {
                                     toast.dismiss(processingToast)
                                     toast.error(

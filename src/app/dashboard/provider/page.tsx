@@ -124,6 +124,26 @@ export default function ProviderDashboard() {
             return
         }
 
+        // Validate account number: must be numbers only
+        if (!/^\d+$/.test(withdrawalForm.accountNumber)) {
+            toast.error('เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น')
+            return
+        }
+
+        // Validate account name: must be characters only (no numbers)
+        if (/\d/.test(withdrawalForm.accountName)) {
+            toast.error(
+                'ชื่อบัญชีต้องเป็นตัวอักษรเท่านั้น ไม่สามารถมีตัวเลขได้'
+            )
+            return
+        }
+        if (/\d/.test(withdrawalForm.bankName)) {
+            toast.error(
+                'ชื่อธนาคารต้องเป็นตัวอักษรเท่านั้น ไม่สามารถมีตัวเลขได้'
+            )
+            return
+        }
+
         setIsProcessingWithdrawal(true)
 
         // Show loading toast
@@ -541,12 +561,17 @@ export default function ProviderDashboard() {
                             <input
                                 type="text"
                                 value={withdrawalForm.accountNumber}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                    // Only allow numbers
+                                    const value = e.target.value.replace(
+                                        /\D/g,
+                                        ''
+                                    )
                                     setWithdrawalForm((prev) => ({
                                         ...prev,
-                                        accountNumber: e.target.value,
+                                        accountNumber: value,
                                     }))
-                                }
+                                }}
                                 className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-500"
                                 placeholder="กรอกเลขที่บัญชี"
                             />
@@ -558,12 +583,17 @@ export default function ProviderDashboard() {
                             <input
                                 type="text"
                                 value={withdrawalForm.accountName}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                    // Only allow characters (letters, spaces, Thai characters) - remove numbers
+                                    const value = e.target.value.replace(
+                                        /\d/g,
+                                        ''
+                                    )
                                     setWithdrawalForm((prev) => ({
                                         ...prev,
-                                        accountName: e.target.value,
+                                        accountName: value,
                                     }))
-                                }
+                                }}
                                 className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-500"
                                 placeholder="กรอกชื่อบัญชี"
                             />

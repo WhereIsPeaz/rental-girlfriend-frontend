@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { ReviewForm } from '@/components/review/implementForm'
 import {
     Calendar,
     Clock,
@@ -17,26 +16,22 @@ import {
     getBookingsByCustomer,
     cancelBookingWithRefund,
     initializeSampleData,
+    getReviewByBooking,
     type User as UserType,
     type Booking,
 } from '@/lib/localStorage'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import ReviewModal from '@/components/ReviewModal'
 
 const Bookings: React.FC = () => {
-    const router = useRouter()
     const { user, isAuthenticated } = useAuthContext()
     const [bookings, setBookings] = useState<Booking[]>([])
     const [providers, setProviders] = useState<Record<string, UserType>>({})
     const [activeTab, setActiveTab] = useState<
         'upcoming' | 'completed' | 'cancelled'
     >('upcoming')
-
-    const [reviewedBookings, setReviewedBookings] = useState<
-        Record<string, boolean>
-    >({})
-    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+    const [reviewModalOpen, setReviewModalOpen] = useState(false)
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
         null
     )
@@ -217,69 +212,33 @@ const Bookings: React.FC = () => {
         )
     }
 
-    const handleReviewBooking = (_bookingId: string) => {
-        setSelectedBookingId(_bookingId)
-        setIsReviewModalOpen(true)
-    }
+    const handleReviewBooking = (bookingId: string) => {
+        if (!user) return
 
-    const handleSubmitReview = async (data: {
-        bookingId: string
-        rating: number
-        comment: string
-    }) => {
-        // const bookingToReview = bookings.find((b) => b.id === data.bookingId)
-        // console.log(bookingToReview)
-        if (!data.bookingId) {
-            toast.error('ไม่พบรายการจองนี้', { duration: 3000 })
+        // ตรวจสอบว่ามีรีวิวแล้วหรือยัง
+        const existingReview = getReviewByBooking(bookingId)
+        if (existingReview) {
+            toast.error('คุณได้รีวิวการจองนี้แล้ว', {
+                duration: 3000,
+            })
             return
         }
-        const bookingToReview = bookings.find((b) => b.id === data.bookingId)
-        const requestBody = {
-            bookingId: data.bookingId,
-            rating: data.rating,
-            comment: data.comment,
-            customerId: user?.id,
-        }
 
-        const processingToast = toast.loading('กำลังส่งรีวิว...')
+        setSelectedBookingId(bookingId)
+        setReviewModalOpen(true)
+    }
 
-        try {
-            const response = await fetch('/reviews', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody),
-            })
-
-            if (!response.ok) {
-                const errorData = await response
-                    .json()
-                    .catch(() => ({ message: 'No error details available' }))
-                throw new Error(
-                    `การส่งรีวิวไม่สำเร็จ (${response.status}): ${errorData.message}`
-                )
-            }
-            setReviewedBookings((prev) => ({ ...prev, [data.bookingId]: true }))
-            setIsReviewModalOpen(false)
-            setSelectedBookingId(null)
-            toast.dismiss(processingToast)
-            toast.success(
-                `รีวิว ${data.rating.toFixed(1).replace('.0', '')} ดาว ถูกส่งเรียบร้อยแล้ว!`,
-                { duration: 2000 }
-            )
-            router.push(`/services/${bookingToReview?.serviceId}`)
-        } catch (error) {
-            toast.dismiss(processingToast)
-            console.error('Error submitting review:', error)
-            toast.error('เกิดข้อผิดพลาดในการส่งรีวิว', { duration: 3000 })
-        }
+    const handleReviewSubmit = () => {
+        // Refresh bookings to update review status
+        void loadBookings()
     }
 
     const handleSendMessage = (_userId: string) => {
         toast.success('เปิดหน้าแชท', {
             duration: 2000,
         })
+        // Here you would navigate to chat page
+        // router.push(`/chat/${userId}`)
     }
 
     if (!isAuthenticated) {
@@ -401,8 +360,6 @@ const Bookings: React.FC = () => {
                     <div className="space-y-6">
                         {filteredBookings.map((booking) => {
                             const provider = providers[booking.providerId]
-                            // CHECK: ตรวจสอบสถานะการรีวิว
-                            const isReviewed = reviewedBookings[booking.id]
 
                             if (!provider) return null
 
@@ -438,9 +395,7 @@ const Bookings: React.FC = () => {
                                             </div>
                                         </div>
                                         <span
-                                            className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(
-                                                booking.status
-                                            )}`}
+                                            className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(booking.status)}`}
                                         >
                                             {getStatusText(booking.status)}
                                         </span>
@@ -516,28 +471,39 @@ const Bookings: React.FC = () => {
                                                 </button>
                                             )}
 
-                                            {booking.status === 'completed' &&
-                                                (isReviewed ? (
-                                                    <button
-                                                        disabled
-                                                        className="flex cursor-not-allowed items-center space-x-2 rounded-lg border border-gray-300 bg-gray-300 px-4 py-2 text-gray-600"
+                                            {booking.status === 'completed' && (
+                                                <>
+                                                    {getReviewByBooking(
+                                                        booking.id
+                                                    ) ? (
+                                                        <button
+                                                            disabled
+                                                            className="flex items-center space-x-2 rounded-lg bg-gray-300 px-4 py-2 text-gray-600 cursor-not-allowed"
+                                                        >
+                                                            <Star className="h-4 w-4" />
+                                                            <span>รีวิวแล้ว</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() =>
+                                                                handleReviewBooking(
+                                                                    booking.id
+                                                                )
+                                                            }
+                                                            className="flex items-center space-x-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2 text-white transition-all hover:from-pink-600 hover:to-rose-600"
+                                                        >
+                                                            <Star className="h-4 w-4" />
+                                                            <span>ให้รีวิว</span>
+                                                        </button>
+                                                    )}
+                                                    <Link
+                                                        href={`/bookings/${booking.id}`}
+                                                        className="flex items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                                                     >
-                                                        <Star className="h-4 w-4" />
-                                                        <span>รีวิวแล้ว</span>
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() =>
-                                                            handleReviewBooking(
-                                                                booking.id
-                                                            )
-                                                        }
-                                                        className="flex transform cursor-pointer items-center space-x-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2 text-white shadow-md transition-all hover:-translate-y-0.5 hover:from-pink-600 hover:to-rose-600"
-                                                    >
-                                                        <Star className="h-4 w-4" />
-                                                        <span>ให้รีวิว</span>
-                                                    </button>
-                                                ))}
+                                                        <span>ดูรายละเอียด</span>
+                                                    </Link>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -545,16 +511,25 @@ const Bookings: React.FC = () => {
                         })}
                     </div>
                 )}
-            </div>
 
-            {isReviewModalOpen && selectedBookingId && (
-                <ReviewForm
-                    isOpen={isReviewModalOpen}
-                    onClose={() => setIsReviewModalOpen(false)}
-                    onSubmit={handleSubmitReview}
-                    bookingId={selectedBookingId}
-                />
-            )}
+                {/* Review Modal */}
+                {selectedBookingId && user && (
+                    <ReviewModal
+                        open={reviewModalOpen}
+                        onClose={() => {
+                            setReviewModalOpen(false)
+                            setSelectedBookingId(null)
+                        }}
+                        bookingId={selectedBookingId}
+                        serviceId={
+                            bookings.find((b) => b.id === selectedBookingId)
+                                ?.serviceId ?? ''
+                        }
+                        customerId={user.id}
+                        onSubmit={handleReviewSubmit}
+                    />
+                )}
+            </div>
         </div>
     )
 }

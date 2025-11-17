@@ -40,6 +40,7 @@ export interface Review {
     rating: number
     comment: string
     createdAt: string
+    bookingId?: string
 }
 
 export interface Booking {
@@ -573,6 +574,23 @@ export const updateServiceRating = (serviceId: string): void => {
         rating: Math.round(avgRating * 10) / 10, // ปัดเศษ 1 ตำแหน่ง
         reviewCount: serviceReviews.length,
     })
+}
+
+export const getReviewByBooking = (bookingId: string): Review | null => {
+    const reviews = getReviews()
+    return reviews.find((r) => r.bookingId === bookingId) ?? null
+}
+
+export const getReviewByServiceAndCustomer = (
+    serviceId: string,
+    customerId: string
+): Review | null => {
+    const reviews = getReviews()
+    return (
+        reviews.find(
+            (r) => r.serviceId === serviceId && r.customerId === customerId
+        ) ?? null
+    )
 }
 
 // Payment management functions
