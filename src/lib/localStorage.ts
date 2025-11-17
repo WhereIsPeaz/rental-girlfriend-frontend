@@ -126,6 +126,23 @@ export interface UserBalance {
     lastUpdated: string
 }
 
+// Chat/message interfaces
+export interface Message {
+    id: string
+    fromId?: string
+    fromMe?: boolean
+    text: string
+    createdAt: string
+}
+
+export interface Chat {
+    id: string
+    name: string
+    participants: string[]
+    lastMessage?: string
+    messages: Message[]
+}
+
 // Keys สำหรับ localStorage
 const USERS_KEY = 'rental_girlfriend_users'
 const SERVICES_KEY = 'rental_girlfriend_services'
@@ -136,6 +153,7 @@ const PAYMENTS_KEY = 'rental_girlfriend_payments'
 const TRANSACTIONS_KEY = 'rental_girlfriend_transactions'
 const BALANCES_KEY = 'rental_girlfriend_balances'
 const WITHDRAWALS_KEY = 'rental_girlfriend_withdrawals'
+const CHATS_KEY = 'rental_girlfriend_chats'
 
 // Helper functions
 export const getUsers = (): User[] => {
@@ -244,6 +262,50 @@ export const getWithdrawals = (): Withdrawal[] => {
 export const setWithdrawals = (withdrawals: Withdrawal[]): void => {
     if (typeof window === 'undefined') return
     localStorage.setItem(WITHDRAWALS_KEY, JSON.stringify(withdrawals))
+}
+
+// Chat helpers
+export const getChats = (): Chat[] => {
+    if (typeof window === 'undefined') return []
+    const raw = localStorage.getItem(CHATS_KEY)
+    return raw ? (JSON.parse(raw) as Chat[]) : []
+}
+
+export const setChats = (chats: Chat[]): void => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(CHATS_KEY, JSON.stringify(chats))
+}
+
+export const getChatById = (chatId: string): Chat | null => {
+    const chats = getChats()
+    return chats.find((c) => c.id === chatId) ?? null
+}
+
+export const postMessage = (
+    chatId: string,
+    messageData: { text: string; fromMe?: boolean; fromId?: string }
+): Message => {
+    const chats = getChats()
+    const idx = chats.findIndex((c) => c.id === chatId)
+    if (idx === -1) {
+        throw new Error('Chat not found')
+    }
+
+    const newMsg: Message = {
+        id: Date.now().toString(),
+        text: messageData.text,
+        fromMe: !!messageData.fromMe,
+        fromId: messageData.fromId,
+        createdAt: new Date().toISOString(),
+    }
+
+    // update in-place on the chats array and persist
+    const chat = chats[idx]!
+    chat.messages = [...(chat.messages ?? []), newMsg]
+    chat.lastMessage = newMsg.text
+    setChats(chats)
+
+    return newMsg
 }
 
 // User management functions
@@ -1130,8 +1192,8 @@ export const payWithWallet = (
 export const initializeSampleData = (): void => {
     if (typeof window === 'undefined') return
 
-    // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่
-    if (getUsers().length > 0) return
+    // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่ (ถ้ามี users และ chats แล้ว ให้ข้ามการสร้าง)
+    if (getUsers().length > 0 && getChats().length > 0) return
 
     // สร้างข้อมูลผู้ใช้ตัวอย่าง
     const sampleUsers: User[] = [
@@ -1437,7 +1499,32 @@ export const initializeSampleData = (): void => {
         },
     ]
 
+    // ตัวอย่างการสนทนา (chats)
+    const sampleChats: Chat[] = [
+        {
+            id: 'c1',
+            name: 'นาตาลี สมิท',
+            participants: ['1', '4'],
+            lastMessage: 'ได้เลยค่ะ อยากทราบว่าต้องการจองวันไหนคะ?',
+            messages: [
+                { id: 'cm1', fromId: '1', fromMe: false, text: 'สวัสดีค่ะ ขอบคุณที่สนใจบริการของฉันนะคะ', createdAt: new Date().toISOString() },
+                { id: 'cm2', fromId: '4', fromMe: true, text: 'สวัสดีครับ อยากสอบถามเรื่องการจองบริการครับ', createdAt: new Date().toISOString() },
+                { id: 'cm3', fromId: '1', fromMe: false, text: 'ได้เลยค่ะ อยากทราบว่าต้องการจองวันไหนคะ?', createdAt: new Date().toISOString() },
+            ],
+        },
+        {
+            id: 'c2',
+            name: 'เอลิซา จอห์นสัน',
+            participants: ['2', '4'],
+            lastMessage: 'ขอบคุณครับ ยินดีให้บริการเสมอ',
+            messages: [
+                { id: 'cm4', fromId: '2', fromMe: false, text: 'ขอบคุณครับ ยินดีให้บริการเสมอ', createdAt: new Date().toISOString() },
+            ],
+        },
+    ]
+
     // บันทึกข้อมูลลง localStorage
+    setChats(sampleChats)
     setUsers(sampleUsers)
     setServices(sampleServices)
     setReviews(sampleReviews)
